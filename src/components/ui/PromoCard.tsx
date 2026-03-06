@@ -28,7 +28,7 @@ export default function PromoCard({ id, title, businessName, location, discountB
             </div>
 
             <h4 className="font-bold text-lg mb-1 group-hover:text-primary transition-colors line-clamp-1">{title}</h4>
-            <p className="text-sm text-slate-600 dark:text-slate-300 mb-3 truncate">
+            <p className="text-sm text-slate-700 dark:text-slate-300 mb-3 truncate">
                 {businessName} • {location}
             </p>
 

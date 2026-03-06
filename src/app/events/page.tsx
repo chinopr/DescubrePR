@@ -92,7 +92,7 @@ export default function EventsPage() {
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">
                         <div>
                             <h1 className="text-3xl md:text-4xl font-black mb-2">Puerto Rico Events</h1>
-                            <p className="text-slate-500">Discover what&apos;s happening around you.</p>
+                            <p className="text-slate-600 dark:text-slate-400">Discover what&apos;s happening around you.</p>
                         </div>
                         <SearchBar className="w-full md:w-auto md:min-w-[400px] !shadow-none border border-slate-200 dark:border-slate-700" />
                         <Link href="/submit/event" className="w-full md:w-auto bg-primary hover:bg-primary-hover text-white font-bold py-3 px-6 rounded-lg transition-colors shadow-md flex justify-center items-center gap-2 shrink-0">
@@ -110,7 +110,7 @@ export default function EventsPage() {
                                 className={`px-5 py-2 rounded-full font-bold shadow-sm whitespace-nowrap transition-colors ${
                                     filter === f.key
                                         ? 'bg-primary text-white'
-                                        : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-primary'
+                                        : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-primary'
                                 }`}
                             >
                                 {f.label}
@@ -144,7 +144,7 @@ export default function EventsPage() {
                                             <span className="material-symbols-outlined text-[18px] text-primary">calendar_today</span>
                                             {formatDate(event.start_datetime)}
                                         </div>
-                                        <div className="flex items-center text-slate-500 dark:text-slate-400 gap-2 text-sm md:text-base">
+                                        <div className="flex items-center text-slate-600 dark:text-slate-300 gap-2 text-sm md:text-base">
                                             <span className="material-symbols-outlined text-[18px]">location_on</span>
                                             {event.municipio}
                                         </div>

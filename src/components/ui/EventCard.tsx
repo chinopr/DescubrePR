@@ -19,7 +19,7 @@ export default function EventCard({ id, title, dateStr, location, imageUrl }: Ev
                 <Link href={`/events/${id}`} className="font-bold text-sm group-hover:text-primary transition-colors line-clamp-1 block">
                     {title}
                 </Link>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 truncate">
+                <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 truncate">
                     {dateStr} • {location}
                 </p>
             </div>

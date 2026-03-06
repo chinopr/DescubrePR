@@ -21,7 +21,7 @@ export default function MobileNav() {
                     <Link
                         key={item.href}
                         href={item.href}
-                        className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${isActive ? 'text-primary' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
+                        className={`flex flex-col items-center justify-center w-full h-full space-y-1 ${isActive ? 'text-primary' : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100'}`}
                     >
                         <span className={`material-symbols-outlined ${isActive ? 'font-variation-fill' : ''}`}>{item.icon}</span>
                         <span className="text-[10px] font-medium">{item.name}</span>

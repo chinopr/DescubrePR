@@ -27,7 +27,7 @@ export default function Header() {
                             <span className="material-symbols-outlined text-[24px]">search</span>
                         </div>
                         <input
-                            className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg focus:outline-0 focus:ring-0 border-none bg-transparent h-full placeholder:text-primary/70 px-4 rounded-l-none pl-2 text-base font-normal leading-normal text-slate-900 dark:text-slate-100"
+                            className="form-input flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-lg focus:outline-0 focus:ring-0 border-none bg-transparent h-full placeholder:text-slate-500 dark:placeholder:text-slate-400 px-4 rounded-l-none pl-2 text-base font-normal leading-normal text-slate-900 dark:text-slate-100"
                             placeholder="Search"
                             defaultValue=""
                         />
@@ -37,18 +37,18 @@ export default function Header() {
             <div className="flex flex-1 justify-end gap-4 md:gap-8">
                 <nav className="hidden md:flex items-center gap-9">
                     <Link className="text-primary font-medium leading-normal border-b-2 border-primary py-2" href="/">Explore</Link>
-                    <Link className="text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary font-medium leading-normal transition-colors" href="/map">Map</Link>
-                    <Link className="text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary font-medium leading-normal transition-colors" href="/events">Events</Link>
-                    <Link className="text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary font-medium leading-normal transition-colors" href="/promos">Promos</Link>
-                    <Link className="text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary font-medium leading-normal transition-colors" href="/services">Classifieds</Link>
-                    <Link className="text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary font-medium leading-normal transition-colors" href="/pricing">Planes</Link>
+                    <Link className="text-slate-700 dark:text-slate-200 hover:text-primary dark:hover:text-primary font-medium leading-normal transition-colors" href="/map">Map</Link>
+                    <Link className="text-slate-700 dark:text-slate-200 hover:text-primary dark:hover:text-primary font-medium leading-normal transition-colors" href="/events">Events</Link>
+                    <Link className="text-slate-700 dark:text-slate-200 hover:text-primary dark:hover:text-primary font-medium leading-normal transition-colors" href="/promos">Promos</Link>
+                    <Link className="text-slate-700 dark:text-slate-200 hover:text-primary dark:hover:text-primary font-medium leading-normal transition-colors" href="/services">Classifieds</Link>
+                    <Link className="text-slate-700 dark:text-slate-200 hover:text-primary dark:hover:text-primary font-medium leading-normal transition-colors" href="/pricing">Planes</Link>
                 </nav>
 
                 {loading ? (
                     <div className="size-10 rounded-full bg-slate-200 dark:bg-slate-700 animate-pulse" />
                 ) : user ? (
                     <div className="flex items-center gap-3">
-                        <Link href="/favorites" className="text-slate-400 hover:text-rose-500 transition-colors" title="Mis Favoritos">
+                        <Link href="/favorites" className="text-slate-500 hover:text-rose-500 transition-colors" title="Mis Favoritos">
                             <span className="material-symbols-outlined text-2xl">favorite</span>
                         </Link>
                         <Link href="/profile" className="flex items-center gap-2">

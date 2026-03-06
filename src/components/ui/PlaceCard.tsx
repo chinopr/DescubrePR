@@ -24,13 +24,13 @@ export default function PlaceCard({ id, title, location, category, imageUrl, rat
             </div>
             <div className="px-1 flex-1 flex flex-col">
                 <h3 className="text-lg font-bold group-hover:text-primary transition-colors line-clamp-1">{title}</h3>
-                <div className="flex items-center text-slate-500 dark:text-slate-400 text-sm mt-1 gap-1">
+                <div className="flex items-center text-slate-600 dark:text-slate-300 text-sm mt-1 gap-1">
                     <span className="material-symbols-outlined text-[16px]">location_on</span>
                     <span className="whitespace-nowrap overflow-hidden text-ellipsis">{location}</span>
                     <span className="mx-1 shrink-0">•</span>
                     <span className="whitespace-nowrap">{category}</span>
                 </div>
-                <p className="text-slate-600 dark:text-slate-300 text-sm mt-2 line-clamp-2">{description}</p>
+                <p className="text-slate-700 dark:text-slate-300 text-sm mt-2 line-clamp-2">{description}</p>
             </div>
         </Link>
     );
