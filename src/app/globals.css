@@ -8,7 +8,7 @@
   --color-background-light: #f8f7f6;
   --color-background-dark: #221910;
 
-  --font-family-display: var(--font-plus-jakarta), sans-serif;
+  --font-family-display: "Avenir Next", "Segoe UI", "Inter", "Helvetica Neue", Arial, sans-serif;
 
   --radius-DEFAULT: 0.25rem;
   --radius-lg: 0.5rem;
@@ -48,5 +48,5 @@
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: var(--font-plus-jakarta), Arial, Helvetica, sans-serif;
+  font-family: var(--font-family-display);
 }

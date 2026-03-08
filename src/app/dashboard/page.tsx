@@ -16,7 +16,7 @@ interface DashStats {
 
 export default function DashboardPage() {
     const { user } = useAuth();
-    const supabase = createClient();
+    const [supabase] = useState(() => createClient());
     const [stats, setStats] = useState<DashStats | null>(null);
     const [loading, setLoading] = useState(true);
 
@@ -26,7 +26,7 @@ export default function DashboardPage() {
             const [biz, ev, pr, pBiz, pEv, pPr] = await Promise.all([
                 supabase.from('businesses').select('*', { count: 'exact', head: true }).eq('owner_id', user!.id),
                 supabase.from('events').select('*', { count: 'exact', head: true }).eq('created_by', user!.id),
-                supabase.from('promotions').select('id, business_id', { count: 'exact', head: false }).then(async (res) => {
+                supabase.from('promotions').select('id, business_id', { count: 'exact', head: false }).then(async () => {
                     // Get promos only for user's businesses
                     const { data: myBiz } = await supabase.from('businesses').select('id').eq('owner_id', user!.id);
                     const bizIds = (myBiz || []).map(b => b.id);
@@ -76,10 +76,10 @@ export default function DashboardPage() {
     const totalPending = stats ? stats.pendingBiz + stats.pendingEvents + stats.pendingPromos : 0;
 
     return (
-        <div className="p-6 md:p-8 max-w-5xl mx-auto">
+        <div className="p-6 md:p-8 max-w-5xl mx-auto text-slate-900 dark:text-slate-100">
             <div className="mb-8">
-                <h1 className="text-3xl font-black mb-1">Mi Panel</h1>
-                <p className="text-slate-500">Administra tus negocios, eventos y promociones</p>
+                <h1 className="text-3xl font-black mb-1 text-slate-900 dark:text-white">Mi Panel</h1>
+                <p className="text-slate-600 dark:text-slate-400">Administra tus negocios, eventos y promociones</p>
             </div>
 
             {loading ? (
@@ -90,16 +90,16 @@ export default function DashboardPage() {
                 <>
                     <div className="grid grid-cols-2 gap-4 mb-8">
                         {cards.map(card => (
-                            <div key={card.label} className="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 hover:shadow-md transition-shadow">
+                            <div key={card.label} className="bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 hover:shadow-md transition-shadow text-slate-900 dark:text-slate-100">
                                 {card.href ? (
-                                    <Link href={card.href} className="block">
+                                    <Link href={card.href} className="block text-inherit">
                                         <div className="flex items-center gap-3 mb-3">
                                             <div className={`w-10 h-10 rounded-lg ${card.color} flex items-center justify-center`}>
                                                 <span className="material-symbols-outlined text-white text-xl">{card.icon}</span>
                                             </div>
-                                            <span className="text-sm text-slate-500 font-medium">{card.label}</span>
+                                            <span className="text-sm text-slate-600 dark:text-slate-300 font-medium">{card.label}</span>
                                         </div>
-                                        <p className="text-3xl font-black">{card.value}</p>
+                                        <p className="text-3xl font-black text-slate-900 dark:text-white">{card.value}</p>
                                     </Link>
                                 ) : (
                                     <>
@@ -107,9 +107,9 @@ export default function DashboardPage() {
                                             <div className={`w-10 h-10 rounded-lg ${card.color} flex items-center justify-center`}>
                                                 <span className="material-symbols-outlined text-white text-xl">{card.icon}</span>
                                             </div>
-                                            <span className="text-sm text-slate-500 font-medium">{card.label}</span>
+                                            <span className="text-sm text-slate-600 dark:text-slate-300 font-medium">{card.label}</span>
                                         </div>
-                                        <p className="text-3xl font-black">{card.value}</p>
+                                        <p className="text-3xl font-black text-slate-900 dark:text-white">{card.value}</p>
                                     </>
                                 )}
                             </div>
@@ -118,34 +118,34 @@ export default function DashboardPage() {
 
                     {/* Pending items */}
                     {totalPending > 0 && (
-                        <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 rounded-xl p-5 mb-8">
-                            <h3 className="font-bold flex items-center gap-2 mb-3">
+                        <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 rounded-xl p-5 mb-8 text-slate-900 dark:text-slate-100">
+                            <h3 className="font-bold flex items-center gap-2 mb-3 text-slate-900 dark:text-white">
                                 <span className="material-symbols-outlined text-amber-500">schedule</span>
                                 Pendiente de Aprobación
                             </h3>
                             <div className="flex flex-wrap gap-3">
-                                {stats.pendingBiz > 0 && <span className="text-sm bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800">{stats.pendingBiz} negocio(s)</span>}
-                                {stats.pendingEvents > 0 && <span className="text-sm bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800">{stats.pendingEvents} evento(s)</span>}
-                                {stats.pendingPromos > 0 && <span className="text-sm bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800">{stats.pendingPromos} promo(s)</span>}
+                                {stats.pendingBiz > 0 && <span className="text-sm text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800">{stats.pendingBiz} negocio(s)</span>}
+                                {stats.pendingEvents > 0 && <span className="text-sm text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800">{stats.pendingEvents} evento(s)</span>}
+                                {stats.pendingPromos > 0 && <span className="text-sm text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-amber-200 dark:border-amber-800">{stats.pendingPromos} promo(s)</span>}
                             </div>
                         </div>
                     )}
 
                     {/* Quick actions */}
-                    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6">
-                        <h3 className="font-bold text-lg mb-4">Acciones Rápidas</h3>
+                    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 text-slate-900 dark:text-slate-100">
+                        <h3 className="font-bold text-lg mb-4 text-slate-900 dark:text-white">Acciones Rápidas</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            <Link href="/submit/business" className="flex items-center gap-3 p-4 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors border border-slate-200 dark:border-slate-700">
+                            <Link href="/submit/business" className="flex items-center gap-3 p-4 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100">
                                 <span className="material-symbols-outlined text-primary">add_business</span>
-                                <span className="text-sm font-medium">Nuevo Negocio</span>
+                                <span className="text-sm font-medium text-slate-900 dark:text-slate-100">Nuevo Negocio</span>
                             </Link>
-                            <Link href="/submit/event" className="flex items-center gap-3 p-4 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors border border-slate-200 dark:border-slate-700">
+                            <Link href="/submit/event" className="flex items-center gap-3 p-4 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100">
                                 <span className="material-symbols-outlined text-primary">event</span>
-                                <span className="text-sm font-medium">Nuevo Evento</span>
+                                <span className="text-sm font-medium text-slate-900 dark:text-slate-100">Nuevo Evento</span>
                             </Link>
-                            <Link href="/submit/promo" className="flex items-center gap-3 p-4 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors border border-slate-200 dark:border-slate-700">
+                            <Link href="/submit/promo" className="flex items-center gap-3 p-4 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-primary/5 dark:hover:bg-primary/10 transition-colors border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100">
                                 <span className="material-symbols-outlined text-primary">local_offer</span>
-                                <span className="text-sm font-medium">Nueva Promo</span>
+                                <span className="text-sm font-medium text-slate-900 dark:text-slate-100">Nueva Promo</span>
                             </Link>
                         </div>
                     </div>

@@ -23,7 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
 
   useEffect(() => {
     const getSession = async () => {
@@ -35,7 +35,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .select('*')
           .eq('id', user.id)
           .single();
-        setProfile(data);
+        setProfile(
+          data ?? {
+            id: user.id,
+            nombre: user.user_metadata?.nombre ?? null,
+            email: user.email ?? '',
+            avatar_url: user.user_metadata?.avatar_url ?? null,
+            rol: user.user_metadata?.rol ?? user.user_metadata?.role ?? 'user',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }
+        );
+      } else {
+        setProfile(null);
       }
       setLoading(false);
     };
@@ -52,7 +64,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             .select('*')
             .eq('id', currentUser.id)
             .single();
-          setProfile(data);
+          setProfile(
+            data ?? {
+              id: currentUser.id,
+              nombre: currentUser.user_metadata?.nombre ?? null,
+              email: currentUser.email ?? '',
+              avatar_url: currentUser.user_metadata?.avatar_url ?? null,
+              rol: currentUser.user_metadata?.rol ?? currentUser.user_metadata?.role ?? 'user',
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            }
+          );
         } else {
           setProfile(null);
         }

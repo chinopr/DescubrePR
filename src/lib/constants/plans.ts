@@ -1,5 +1,7 @@
+export type PlanId = 'basico' | 'pro' | 'premium';
+
 export interface Plan {
-    id: string;
+    id: PlanId;
     name: string;
     price: number;
     priceId: string;
@@ -59,3 +61,23 @@ export const PLANS: Plan[] = [
         ],
     },
 ];
+
+export const PLAN_BY_ID: Record<PlanId, Plan> = PLANS.reduce((acc, plan) => {
+    acc[plan.id] = plan;
+    return acc;
+}, {} as Record<PlanId, Plan>);
+
+export const PLAN_BY_PRICE_ID = PLANS.reduce<Record<string, Plan>>((acc, plan) => {
+    acc[plan.priceId] = plan;
+    return acc;
+}, {});
+
+export function getPlanById(planId: string | null | undefined) {
+    if (!planId) return null;
+    return PLAN_BY_ID[planId as PlanId] || null;
+}
+
+export function getPlanByPriceId(priceId: string | null | undefined) {
+    if (!priceId) return null;
+    return PLAN_BY_PRICE_ID[priceId] || null;
+}

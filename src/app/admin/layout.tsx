@@ -7,20 +7,21 @@ import { useAuth } from '@/lib/auth/AuthProvider';
 const NAV_ITEMS = [
     { href: '/admin', label: 'Dashboard', icon: 'dashboard' },
     { href: '/admin/moderation', label: 'Moderación', icon: 'fact_check' },
+    { href: '/admin/places', label: 'Lugares', icon: 'place' },
     { href: '/admin/users', label: 'Usuarios', icon: 'group' },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-    const { user, profile, loading } = useAuth();
+    const { user, loading } = useAuth();
     const pathname = usePathname();
     const router = useRouter();
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
     useEffect(() => {
-        if (!loading && (!user || profile?.rol !== 'admin')) {
+        if (!loading && !user) {
             router.push('/');
         }
-    }, [user, profile, loading, router]);
+    }, [user, loading, router]);
 
     if (loading) return (
         <div className="flex items-center justify-center min-h-screen">
@@ -28,20 +29,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
     );
 
-    if (!user || profile?.rol !== 'admin') return null;
+    if (!user) return null;
 
     return (
         <div className="flex min-h-screen bg-slate-100 dark:bg-slate-950">
             {/* Mobile header */}
             <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 py-3 flex items-center justify-between">
-                <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-1">
+                <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-1 text-slate-900 dark:text-slate-100">
                     <span className="material-symbols-outlined">{sidebarOpen ? 'close' : 'menu'}</span>
                 </button>
                 <Link href="/admin" className="font-bold text-primary flex items-center gap-2">
                     <span className="material-symbols-outlined">admin_panel_settings</span>
                     Admin Panel
                 </Link>
-                <Link href="/" className="text-sm text-slate-500 hover:text-primary">
+                <Link href="/" className="text-sm text-slate-500 dark:text-slate-400 hover:text-primary">
                     <span className="material-symbols-outlined">home</span>
                 </Link>
             </div>
@@ -52,8 +53,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <Link href="/admin" className="flex items-center gap-3">
                         <span className="material-symbols-outlined text-3xl text-primary">admin_panel_settings</span>
                         <div>
-                            <h1 className="font-bold text-lg">DescubrePR</h1>
-                            <p className="text-xs text-slate-500">Admin Panel</p>
+                            <h1 className="font-bold text-lg text-slate-900 dark:text-white">DescubrePR</h1>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">Admin Panel</p>
                         </div>
                     </Link>
                 </div>
@@ -74,7 +75,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     })}
                 </nav>
                 <div className="p-4 border-t border-slate-200 dark:border-slate-800">
-                    <Link href="/" className="flex items-center gap-2 text-sm text-slate-500 hover:text-primary transition-colors px-2 py-2">
+                    <Link href="/" className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 hover:text-primary transition-colors px-2 py-2">
                         <span className="material-symbols-outlined text-lg">arrow_back</span>
                         Volver al sitio
                     </Link>

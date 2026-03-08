@@ -1,17 +1,15 @@
 'use client';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/ui/Header';
 import MobileNav from '@/components/ui/MobileNav';
+import BotProtectionFields from '@/components/ui/BotProtectionFields';
 import { useAuth } from '@/lib/auth/AuthProvider';
-import { createClient } from '@/lib/supabase/client';
 import { MUNICIPIOS, BUSINESS_CATEGORIES } from '@/lib/constants/municipios';
+import { useBotProtection } from '@/lib/security/use-bot-protection';
 
 export default function SubmitBusinessPage() {
     const { user, loading: authLoading } = useAuth();
-    const router = useRouter();
-    const supabase = createClient();
 
     const [nombre, setNombre] = useState('');
     const [descripcion, setDescripcion] = useState('');
@@ -25,6 +23,7 @@ export default function SubmitBusinessPage() {
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
+    const botProtection = useBotProtection();
 
     const toggleCategory = (cat: string) => {
         setCategorias(prev =>
@@ -38,25 +37,39 @@ export default function SubmitBusinessPage() {
         setSubmitting(true);
         setError(null);
 
-        const { error: insertError } = await supabase.from('businesses').insert({
-            owner_id: user.id,
-            nombre,
-            descripcion: descripcion || null,
-            municipio,
-            address_text: addressText || null,
-            telefono: telefono || null,
-            whatsapp: whatsapp || null,
-            instagram: instagram || null,
-            website: website || null,
-            categorias,
-            estado: 'pending',
-        });
+        try {
+            const response = await fetch('/api/submit/business', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    nombre,
+                    descripcion,
+                    municipio,
+                    addressText,
+                    telefono,
+                    whatsapp,
+                    instagram,
+                    website,
+                    categorias,
+                    contactWebsite: botProtection.honeypot,
+                    startedAt: botProtection.startedAt,
+                    captchaToken: botProtection.captchaToken,
+                }),
+            });
 
-        if (insertError) {
-            setError(insertError.message);
-            setSubmitting(false);
-        } else {
+            const result = await response.json().catch(() => null) as { error?: string } | null;
+
+            if (!response.ok) {
+                setError(result?.error || 'No pudimos guardar el negocio.');
+                return;
+            }
+
             setSuccess(true);
+        } catch {
+            setError('No pudimos guardar el negocio.');
+        } finally {
+            botProtection.resetChallenge();
+            setSubmitting(false);
         }
     };
 
@@ -82,7 +95,7 @@ export default function SubmitBusinessPage() {
             <main className="flex-1 flex items-center justify-center px-4">
                 <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 max-w-md w-full text-center shadow-lg border border-slate-200 dark:border-slate-700">
                     <span className="material-symbols-outlined text-6xl text-green-500 mb-4 block">check_circle</span>
-                    <h2 className="text-2xl font-bold mb-2">Negocio Registrado</h2>
+                    <h2 className="text-2xl font-bold mb-2 text-slate-900 dark:text-white">Negocio Registrado</h2>
                     <p className="text-slate-500 mb-6">Tu negocio fue enviado y está pendiente de aprobación. Te notificaremos cuando sea publicado.</p>
                     <div className="flex flex-col gap-3">
                         <Link href="/" className="bg-primary text-white px-6 py-3 rounded-lg font-medium hover:bg-primary-hover transition">
@@ -113,7 +126,7 @@ export default function SubmitBusinessPage() {
                         <div className="flex items-center gap-3 mb-6">
                             <span className="material-symbols-outlined text-3xl text-primary">storefront</span>
                             <div>
-                                <h1 className="text-2xl font-bold">Registrar Negocio</h1>
+                                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Registrar Negocio</h1>
                                 <p className="text-slate-500 text-sm">Completa los datos de tu negocio para aparecer en DescubrePR</p>
                             </div>
                         </div>
@@ -155,7 +168,7 @@ export default function SubmitBusinessPage() {
                             </div>
 
                             <div className="border-t border-slate-200 dark:border-slate-700 pt-5">
-                                <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
+                                <h3 className="font-bold text-lg mb-3 flex items-center gap-2 text-slate-900 dark:text-white">
                                     <span className="material-symbols-outlined text-slate-400">contact_phone</span>
                                     Contacto
                                 </h3>
@@ -189,7 +202,14 @@ export default function SubmitBusinessPage() {
                                 </div>
                             )}
 
-                            <button type="submit" disabled={submitting || categorias.length === 0} className="w-full bg-primary hover:bg-primary-hover text-white font-bold py-3 rounded-lg transition disabled:opacity-50 flex items-center justify-center gap-2">
+                            <BotProtectionFields
+                                honeypot={botProtection.honeypot}
+                                onHoneypotChange={botProtection.setHoneypot}
+                                onCaptchaTokenChange={botProtection.setCaptchaToken}
+                                resetKey={botProtection.challengeNonce}
+                            />
+
+                            <button type="submit" disabled={submitting || categorias.length === 0 || (botProtection.captchaEnabled && !botProtection.captchaToken)} className="w-full bg-primary hover:bg-primary-hover text-white font-bold py-3 rounded-lg transition disabled:opacity-50 flex items-center justify-center gap-2">
                                 {submitting ? (
                                     <><div className="animate-spin rounded-full h-5 w-5 border-t-2 border-white"></div> Enviando...</>
                                 ) : (

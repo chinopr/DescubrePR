@@ -42,11 +42,11 @@ export default function MyPromosPage() {
     const formatDate = (d: string) => new Date(d).toLocaleDateString('es-PR', { day: 'numeric', month: 'short' });
 
     return (
-        <div className="p-6 md:p-8 max-w-5xl mx-auto">
+        <div className="p-6 md:p-8 max-w-5xl mx-auto text-slate-900 dark:text-slate-100">
             <div className="flex justify-between items-center mb-8">
                 <div>
-                    <h1 className="text-3xl font-black mb-1">Mis Promociones</h1>
-                    <p className="text-slate-500">{promos.length} creada(s)</p>
+                    <h1 className="text-3xl font-black mb-1 text-slate-900 dark:text-white">Mis Promociones</h1>
+                    <p className="text-slate-600 dark:text-slate-400">{promos.length} creada(s)</p>
                 </div>
                 <Link href="/submit/promo" className="bg-primary hover:bg-primary-hover text-white font-bold py-2.5 px-5 rounded-lg transition flex items-center gap-2 text-sm">
                     <span className="material-symbols-outlined text-lg">add</span> Nueva
@@ -58,9 +58,9 @@ export default function MyPromosPage() {
                     {[1,2].map(i => <div key={i} className="h-24 bg-white dark:bg-slate-900 rounded-xl animate-pulse" />)}
                 </div>
             ) : promos.length === 0 ? (
-                <div className="text-center py-16 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+                <div className="text-center py-16 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100">
                     <span className="material-symbols-outlined text-5xl text-slate-300 mb-3 block">local_offer</span>
-                    <p className="text-lg text-slate-500 mb-4">No tienes promociones creadas</p>
+                    <p className="text-lg text-slate-600 dark:text-slate-400 mb-4">No tienes promociones creadas</p>
                     <Link href="/submit/promo" className="inline-flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-lg font-medium hover:bg-primary-hover transition">
                         <span className="material-symbols-outlined">add</span> Crear Promoción
                     </Link>
@@ -72,20 +72,23 @@ export default function MyPromosPage() {
                         const status = isExpired ? 'expired' : promo.estado;
                         const badge = STATUS_BADGE[status] || STATUS_BADGE['pending'];
                         return (
-                            <div key={promo.id} className={`bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center gap-4 ${isExpired ? 'opacity-60' : ''}`}>
+                            <div key={promo.id} className={`bg-white dark:bg-slate-900 rounded-xl p-5 border border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-start sm:items-center gap-4 text-slate-900 dark:text-slate-100 ${isExpired ? 'opacity-60' : ''}`}>
                                 <div className="w-12 h-12 rounded-xl bg-amber-100 dark:bg-amber-900/20 flex items-center justify-center shrink-0">
                                     <span className="material-symbols-outlined text-amber-500">local_offer</span>
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 mb-1">
-                                        <h3 className="font-bold text-lg truncate">{promo.titulo}</h3>
+                                        <h3 className="font-bold text-lg truncate text-slate-900 dark:text-white">{promo.titulo}</h3>
                                         <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${badge.cls}`}>{badge.label}</span>
                                     </div>
-                                    <p className="text-sm text-slate-500">
+                                    <p className="text-sm text-slate-600 dark:text-slate-400">
                                         {promo.business_name} &middot; {formatDate(promo.start_date)} - {formatDate(promo.end_date)}
                                         {promo.codigo && <span className="ml-2 font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-xs">{promo.codigo}</span>}
                                     </p>
                                 </div>
+                                <Link href={`/dashboard/promos/${promo.id}/edit`} className="text-slate-700 dark:text-slate-300 hover:text-primary text-sm font-medium flex items-center gap-1 transition shrink-0">
+                                    <span className="material-symbols-outlined text-sm">edit</span> Editar
+                                </Link>
                             </div>
                         );
                     })}

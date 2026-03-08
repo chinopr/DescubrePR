@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import type { AdminAuditLog } from '@/lib/types/database';
 
 interface Stats {
     places: number;
@@ -13,6 +13,11 @@ interface Stats {
     pendingBusinesses: number;
     pendingPromos: number;
     pendingServices: number;
+}
+
+interface AuditLogItem extends AdminAuditLog {
+    actor_name: string;
+    actor_email: string | null;
 }
 
 const STAT_CARDS: { key: keyof Stats; label: string; icon: string; color: string; href?: string }[] = [
@@ -33,48 +38,50 @@ const PENDING_CARDS: { key: keyof Stats; label: string; icon: string }[] = [
 
 export default function AdminDashboard() {
     const [stats, setStats] = useState<Stats | null>(null);
+    const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([]);
     const [loading, setLoading] = useState(true);
-    const supabase = createClient();
 
     useEffect(() => {
-        async function fetchStats() {
-            const [places, businesses, events, promotions, services, users, pEvents, pBiz, pPromos, pServices] = await Promise.all([
-                supabase.from('places').select('*', { count: 'exact', head: true }),
-                supabase.from('businesses').select('*', { count: 'exact', head: true }),
-                supabase.from('events').select('*', { count: 'exact', head: true }),
-                supabase.from('promotions').select('*', { count: 'exact', head: true }),
-                supabase.from('service_listings').select('*', { count: 'exact', head: true }),
-                supabase.from('profiles').select('*', { count: 'exact', head: true }),
-                supabase.from('events').select('*', { count: 'exact', head: true }).eq('estado', 'pending'),
-                supabase.from('businesses').select('*', { count: 'exact', head: true }).eq('estado', 'pending'),
-                supabase.from('promotions').select('*', { count: 'exact', head: true }).eq('estado', 'pending'),
-                supabase.from('service_listings').select('*', { count: 'exact', head: true }).eq('estado', 'pending'),
-            ]);
+        let cancelled = false;
 
-            setStats({
-                places: places.count || 0,
-                businesses: businesses.count || 0,
-                events: events.count || 0,
-                promotions: promotions.count || 0,
-                services: services.count || 0,
-                users: users.count || 0,
-                pendingEvents: pEvents.count || 0,
-                pendingBusinesses: pBiz.count || 0,
-                pendingPromos: pPromos.count || 0,
-                pendingServices: pServices.count || 0,
-            });
-            setLoading(false);
+        async function fetchStats() {
+            try {
+                const [statsResponse, auditResponse] = await Promise.all([
+                    fetch('/api/admin/stats', { cache: 'no-store' }),
+                    fetch('/api/admin/audit', { cache: 'no-store' }),
+                ]);
+
+                const statsResult = await statsResponse.json().catch(() => null) as Stats | null;
+                const auditResult = await auditResponse.json().catch(() => null) as { logs?: AuditLogItem[] } | null;
+
+                if (!statsResponse.ok || !statsResult || !auditResponse.ok || !auditResult) {
+                    throw new Error('stats_failed');
+                }
+
+                if (!cancelled) {
+                    setStats(statsResult);
+                    setAuditLogs(auditResult.logs || []);
+                }
+            } finally {
+                if (!cancelled) {
+                    setLoading(false);
+                }
+            }
         }
-        fetchStats();
-    }, [supabase]);
+        void fetchStats();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     const totalPending = stats ? stats.pendingEvents + stats.pendingBusinesses + stats.pendingPromos + stats.pendingServices : 0;
 
     return (
         <div className="p-6 md:p-8 max-w-6xl mx-auto">
             <div className="mb-8">
-                <h1 className="text-3xl font-black mb-1">Dashboard</h1>
-                <p className="text-slate-500">Vista general de DescubrePR</p>
+                <h1 className="text-3xl font-black mb-1 text-slate-900 dark:text-white">Dashboard</h1>
+                <p className="text-slate-500 dark:text-slate-400">Vista general de DescubrePR</p>
             </div>
 
             {loading ? (
@@ -91,9 +98,9 @@ export default function AdminDashboard() {
                                     <div className={`w-10 h-10 rounded-lg ${card.color} flex items-center justify-center`}>
                                         <span className="material-symbols-outlined text-white text-xl">{card.icon}</span>
                                     </div>
-                                    <span className="text-sm text-slate-500 font-medium">{card.label}</span>
+                                    <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">{card.label}</span>
                                 </div>
-                                <p className="text-3xl font-black">{stats[card.key]}</p>
+                                <p className="text-3xl font-black text-slate-900 dark:text-white">{stats[card.key]}</p>
                             </div>
                         ))}
                     </div>
@@ -101,7 +108,7 @@ export default function AdminDashboard() {
                     {/* Pending moderation */}
                     <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6">
                         <div className="flex items-center justify-between mb-5">
-                            <h2 className="text-xl font-bold flex items-center gap-2">
+                            <h2 className="text-xl font-bold flex items-center gap-2 text-slate-900 dark:text-white">
                                 <span className="material-symbols-outlined text-amber-500">pending_actions</span>
                                 Pendiente de Moderación
                             </h2>
@@ -114,7 +121,7 @@ export default function AdminDashboard() {
                         {totalPending === 0 ? (
                             <div className="text-center py-8">
                                 <span className="material-symbols-outlined text-5xl text-green-400 mb-2 block">check_circle</span>
-                                <p className="text-slate-500">Todo al día. No hay contenido pendiente.</p>
+                                <p className="text-slate-500 dark:text-slate-400">Todo al día. No hay contenido pendiente.</p>
                             </div>
                         ) : (
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -122,13 +129,63 @@ export default function AdminDashboard() {
                                     const count = stats[card.key];
                                     if (count === 0) return null;
                                     return (
-                                        <a key={card.key} href="/admin/moderation" className="flex items-center gap-3 p-4 rounded-lg bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 hover:shadow-md transition-shadow">
+                                        <a key={card.key} href="/admin/moderation" className="flex items-center gap-3 p-4 rounded-lg bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 hover:shadow-md transition-shadow text-slate-900 dark:text-slate-100">
                                             <span className="material-symbols-outlined text-amber-600">{card.icon}</span>
-                                            <span className="flex-1 font-medium text-sm">{card.label}</span>
+                                            <span className="flex-1 font-medium text-sm text-slate-900 dark:text-slate-100">{card.label}</span>
                                             <span className="bg-amber-500 text-white text-xs font-bold px-2.5 py-1 rounded-full">{count}</span>
                                         </a>
                                     );
                                 })}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="mt-8 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6">
+                        <div className="flex items-center justify-between mb-5">
+                            <h2 className="text-xl font-bold flex items-center gap-2 text-slate-900 dark:text-white">
+                                <span className="material-symbols-outlined text-sky-500">history</span>
+                                Audit Log
+                            </h2>
+                            <span className="text-sm text-slate-500 dark:text-slate-400">
+                                Últimas acciones admin
+                            </span>
+                        </div>
+
+                        {auditLogs.length === 0 ? (
+                            <div className="text-center py-8">
+                                <span className="material-symbols-outlined text-5xl text-slate-300 dark:text-slate-600 mb-2 block">history_toggle_off</span>
+                                <p className="text-slate-500 dark:text-slate-400">Aún no hay eventos registrados.</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {auditLogs.map(log => (
+                                    <div
+                                        key={log.id}
+                                        className="rounded-lg border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-800/70"
+                                    >
+                                        <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+                                            <div>
+                                                <p className="font-semibold text-slate-900 dark:text-white">
+                                                    {log.actor_name}
+                                                </p>
+                                                <p className="text-sm text-slate-500 dark:text-slate-400">
+                                                    {String(log.action)} · {String(log.target_type)}
+                                                </p>
+                                            </div>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                                                {new Date(log.created_at).toLocaleString()}
+                                            </p>
+                                        </div>
+                                        <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
+                                            {log.target_id ? `Objetivo: ${log.target_id}` : 'Objetivo sin ID persistido.'}
+                                        </p>
+                                        {log.ip_address ? (
+                                            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                                IP: {log.ip_address}
+                                            </p>
+                                        ) : null}
+                                    </div>
+                                ))}
                             </div>
                         )}
                     </div>

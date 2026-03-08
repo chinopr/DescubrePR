@@ -7,6 +7,7 @@ export type ListingType = 'servicio' | 'producto' | 'alquiler';
 export type FavoriteTarget = 'place' | 'business' | 'event' | 'promotion' | 'service';
 export type ReportTarget = FavoriteTarget | 'profile';
 export type PlaceSource = 'user' | 'admin';
+export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'canceled' | 'unpaid' | 'incomplete' | 'incomplete_expired' | 'paused';
 
 export interface Profile {
   id: string;
@@ -122,6 +123,46 @@ export interface Favorite {
   created_at: string;
 }
 
+export interface Notification {
+  id: string;
+  user_id: string;
+  titulo: string;
+  mensaje: string;
+  leida: boolean;
+  link: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Subscription {
+  id: string;
+  user_id: string;
+  plan_id: string | null;
+  stripe_customer_id: string | null;
+  stripe_subscription_id: string | null;
+  stripe_price_id: string | null;
+  stripe_checkout_session_id: string | null;
+  status: SubscriptionStatus;
+  cancel_at_period_end: boolean;
+  current_period_start: string | null;
+  current_period_end: string | null;
+  canceled_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PushSubscriptionRecord {
+  id: string;
+  user_id: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+  expiration_time: number | null;
+  user_agent: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Report {
   id: string;
   reporter_id: string | null;
@@ -131,6 +172,18 @@ export interface Report {
   status: 'pending' | 'reviewed' | 'resolved' | 'dismissed';
   created_at: string;
   updated_at: string;
+}
+
+export interface AdminAuditLog {
+  id: string;
+  actor_id: string | null;
+  action: string;
+  target_type: string;
+  target_id: string | null;
+  metadata: Record<string, unknown>;
+  ip_address: string | null;
+  user_agent: string | null;
+  created_at: string;
 }
 
 // Extended types with relations

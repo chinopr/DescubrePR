@@ -3,14 +3,15 @@ import { useState } from 'react';
 import Link from 'next/link';
 import Header from '@/components/ui/Header';
 import MobileNav from '@/components/ui/MobileNav';
+import BotProtectionFields from '@/components/ui/BotProtectionFields';
 import { useAuth } from '@/lib/auth/AuthProvider';
-import { createClient } from '@/lib/supabase/client';
+import ImageUpload from '@/components/ui/ImageUpload';
 import { MUNICIPIOS } from '@/lib/constants/municipios';
+import { useBotProtection } from '@/lib/security/use-bot-protection';
 import type { ListingType } from '@/lib/types/database';
 
 export default function SubmitServicePage() {
     const { user, loading: authLoading } = useAuth();
-    const supabase = createClient();
 
     const [tipo, setTipo] = useState<ListingType>('servicio');
     const [titulo, setTitulo] = useState('');
@@ -19,9 +20,11 @@ export default function SubmitServicePage() {
     const [precio, setPrecio] = useState('');
     const [telefono, setTelefono] = useState('');
     const [whatsapp, setWhatsapp] = useState('');
+    const [fotos, setFotos] = useState<string[]>([]);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
+    const botProtection = useBotProtection();
 
     const tipoLabels: Record<ListingType, string> = {
         servicio: 'Servicio',
@@ -35,24 +38,38 @@ export default function SubmitServicePage() {
         setSubmitting(true);
         setError(null);
 
-        const { error: insertError } = await supabase.from('service_listings').insert({
-            user_id: user.id,
-            tipo,
-            titulo,
-            descripcion: descripcion || null,
-            municipio,
-            precio: precio ? parseFloat(precio) : null,
-            telefono: telefono || null,
-            whatsapp: whatsapp || null,
-            fotos: [],
-            estado: 'pending',
-        });
+        try {
+            const response = await fetch('/api/submit/service', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    tipo,
+                    titulo,
+                    descripcion,
+                    municipio,
+                    precio,
+                    telefono,
+                    whatsapp,
+                    fotos,
+                    contactWebsite: botProtection.honeypot,
+                    startedAt: botProtection.startedAt,
+                    captchaToken: botProtection.captchaToken,
+                }),
+            });
 
-        if (insertError) {
-            setError(insertError.message);
-            setSubmitting(false);
-        } else {
+            const result = await response.json().catch(() => null) as { error?: string } | null;
+
+            if (!response.ok) {
+                setError(result?.error || 'No pudimos guardar el anuncio.');
+                return;
+            }
+
             setSuccess(true);
+        } catch {
+            setError('No pudimos guardar el anuncio.');
+        } finally {
+            botProtection.resetChallenge();
+            setSubmitting(false);
         }
     };
 
@@ -78,7 +95,7 @@ export default function SubmitServicePage() {
             <main className="flex-1 flex items-center justify-center px-4">
                 <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 max-w-md w-full text-center shadow-lg border border-slate-200 dark:border-slate-700">
                     <span className="material-symbols-outlined text-6xl text-green-500 mb-4 block">check_circle</span>
-                    <h2 className="text-2xl font-bold mb-2">Anuncio Publicado</h2>
+                    <h2 className="text-2xl font-bold mb-2 text-slate-900 dark:text-white">Anuncio Publicado</h2>
                     <p className="text-slate-500 mb-6">Tu anuncio fue enviado y está pendiente de aprobación.</p>
                     <div className="flex flex-col gap-3">
                         <Link href="/services" className="bg-primary text-white px-6 py-3 rounded-lg font-medium hover:bg-primary-hover transition">
@@ -109,7 +126,7 @@ export default function SubmitServicePage() {
                         <div className="flex items-center gap-3 mb-6">
                             <span className="material-symbols-outlined text-3xl text-primary">campaign</span>
                             <div>
-                                <h1 className="text-2xl font-bold">Publicar Anuncio</h1>
+                                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Publicar Anuncio</h1>
                                 <p className="text-slate-500 text-sm">Publica un servicio, producto o alquiler</p>
                             </div>
                         </div>
@@ -167,6 +184,11 @@ export default function SubmitServicePage() {
                                 </div>
                             </div>
 
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Fotos</label>
+                                <ImageUpload value={fotos} onChange={setFotos} max={5} />
+                            </div>
+
                             {error && (
                                 <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-start gap-3">
                                     <span className="material-symbols-outlined text-red-500 shrink-0">error</span>
@@ -174,7 +196,14 @@ export default function SubmitServicePage() {
                                 </div>
                             )}
 
-                            <button type="submit" disabled={submitting} className="w-full bg-primary hover:bg-primary-hover text-white font-bold py-3 rounded-lg transition disabled:opacity-50 flex items-center justify-center gap-2">
+                            <BotProtectionFields
+                                honeypot={botProtection.honeypot}
+                                onHoneypotChange={botProtection.setHoneypot}
+                                onCaptchaTokenChange={botProtection.setCaptchaToken}
+                                resetKey={botProtection.challengeNonce}
+                            />
+
+                            <button type="submit" disabled={submitting || (botProtection.captchaEnabled && !botProtection.captchaToken)} className="w-full bg-primary hover:bg-primary-hover text-white font-bold py-3 rounded-lg transition disabled:opacity-50 flex items-center justify-center gap-2">
                                 {submitting ? (
                                     <><div className="animate-spin rounded-full h-5 w-5 border-t-2 border-white"></div> Enviando...</>
                                 ) : (

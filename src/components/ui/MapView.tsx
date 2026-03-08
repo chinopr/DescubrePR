@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { useSyncExternalStore } from 'react';
+import { CircleMarker, MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
 import L from 'leaflet';
+import Link from 'next/link';
 
 // Fix Leaflet icons in Next.js
 const iconUrl = 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png';
@@ -33,6 +34,7 @@ interface MapCoordinate {
     lng: number;
     title: string;
     category: string;
+    municipio?: string;
     url: string;
 }
 
@@ -41,19 +43,21 @@ interface MapViewProps {
     center?: [number, number];
     zoom?: number;
     className?: string;
+    userLocation?: [number, number] | null;
 }
 
 export default function MapView({
     markers,
     center = [18.2208, -66.5901], // Center of Puerto Rico
     zoom = 9,
-    className = "h-[400px] w-full rounded-xl z-0 relative"
+    className = "h-[400px] w-full rounded-xl z-0 relative",
+    userLocation = null,
 }: MapViewProps) {
-    const [mounted, setMounted] = useState(false);
-
-    useEffect(() => {
-        setMounted(true);
-    }, []);
+    const mounted = useSyncExternalStore(
+        () => () => {},
+        () => true,
+        () => false
+    );
 
     if (!mounted) {
         return (
@@ -82,19 +86,46 @@ export default function MapView({
                         icon={defaultIcon}
                     >
                         <Popup>
-                            <div className="text-center">
+                            <div className="text-center min-w-40">
                                 <h3 className="font-bold text-sm mb-1">{marker.title}</h3>
-                                <p className="text-xs text-slate-500 mb-2">{marker.category}</p>
-                                <a
-                                    href={marker.url}
-                                    className="text-white bg-primary hover:bg-primary-hover transition-colors px-3 py-1 rounded-full text-xs inline-block"
-                                >
-                                    Ver Detalle
-                                </a>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">{marker.category}</p>
+                                {marker.municipio && (
+                                    <p className="text-xs text-slate-400 dark:text-slate-500 mb-3">{marker.municipio}</p>
+                                )}
+                                <div className="flex items-center justify-center gap-2">
+                                    <Link
+                                        href={marker.url}
+                                        className="text-white bg-primary hover:bg-primary-hover transition-colors px-3 py-1 rounded-full text-xs inline-block"
+                                    >
+                                        Ver Detalle
+                                    </Link>
+                                    <a
+                                        href={`https://www.google.com/maps/dir/?api=1&destination=${marker.lat},${marker.lng}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-600 hover:bg-primary/10 dark:hover:bg-primary/15 hover:border-primary/40 transition-colors px-3 py-1 rounded-full text-xs inline-block"
+                                    >
+                                        Cómo llegar
+                                    </a>
+                                </div>
                             </div>
                         </Popup>
                     </Marker>
                 ))}
+                {userLocation && (
+                    <CircleMarker
+                        center={userLocation}
+                        radius={10}
+                        pathOptions={{ color: '#2563eb', fillColor: '#60a5fa', fillOpacity: 0.9, weight: 3 }}
+                    >
+                        <Popup>
+                            <div className="text-center">
+                                <h3 className="font-bold text-sm">Tu ubicación</h3>
+                                <p className="text-xs text-slate-500 dark:text-slate-400">Usando geolocalización del navegador</p>
+                            </div>
+                        </Popup>
+                    </CircleMarker>
+                )}
             </MapContainer>
         </div>
     );

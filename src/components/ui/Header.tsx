@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth/AuthProvider';
 import { useRouter } from 'next/navigation';
+import NotificationBell from './NotificationBell';
 
 export default function Header() {
     const { user, profile, loading, signOut } = useAuth();
@@ -48,7 +49,8 @@ export default function Header() {
                     <div className="size-10 rounded-full bg-slate-200 dark:bg-slate-700 animate-pulse" />
                 ) : user ? (
                     <div className="flex items-center gap-3">
-                        <Link href="/favorites" className="text-slate-500 hover:text-rose-500 transition-colors" title="Mis Favoritos">
+                        <NotificationBell />
+                        <Link href="/favorites" className="text-slate-500 dark:text-slate-400 hover:text-rose-500 transition-colors" title="Mis Favoritos">
                             <span className="material-symbols-outlined text-2xl">favorite</span>
                         </Link>
                         <Link href="/profile" className="flex items-center gap-2">
@@ -64,7 +66,7 @@ export default function Header() {
                         </Link>
                         <button
                             onClick={handleSignOut}
-                            className="hidden md:flex items-center gap-1 text-sm text-slate-500 hover:text-red-500 transition-colors"
+                            className="hidden md:flex items-center gap-1 text-sm text-slate-500 dark:text-slate-400 hover:text-red-500 transition-colors"
                             title="Cerrar sesión"
                         >
                             <span className="material-symbols-outlined text-xl">logout</span>

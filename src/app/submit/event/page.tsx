@@ -1,18 +1,19 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Header from '@/components/ui/Header';
 import MobileNav from '@/components/ui/MobileNav';
+import BotProtectionFields from '@/components/ui/BotProtectionFields';
 import { useAuth } from '@/lib/auth/AuthProvider';
 import { createClient } from '@/lib/supabase/client';
+import ImageUpload from '@/components/ui/ImageUpload';
 import { MUNICIPIOS } from '@/lib/constants/municipios';
+import { useBotProtection } from '@/lib/security/use-bot-protection';
 import type { Business } from '@/lib/types/database';
 
 export default function SubmitEventPage() {
     const { user, loading: authLoading } = useAuth();
-    const router = useRouter();
-    const supabase = createClient();
+    const [supabase] = useState(() => createClient());
 
     const [titulo, setTitulo] = useState('');
     const [descripcion, setDescripcion] = useState('');
@@ -23,10 +24,12 @@ export default function SubmitEventPage() {
     const [link, setLink] = useState('');
     const [whatsapp, setWhatsapp] = useState('');
     const [businessId, setBusinessId] = useState('');
+    const [fotos, setFotos] = useState<string[]>([]);
     const [myBusinesses, setMyBusinesses] = useState<Business[]>([]);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
+    const botProtection = useBotProtection();
 
     useEffect(() => {
         if (!user) return;
@@ -43,26 +46,40 @@ export default function SubmitEventPage() {
         setSubmitting(true);
         setError(null);
 
-        const { error: insertError } = await supabase.from('events').insert({
-            created_by: user.id,
-            business_id: businessId || null,
-            titulo,
-            descripcion: descripcion || null,
-            start_datetime: startDatetime,
-            end_datetime: endDatetime,
-            municipio,
-            costo: parseFloat(costo) || 0,
-            link: link || null,
-            whatsapp: whatsapp || null,
-            fotos: [],
-            estado: 'pending',
-        });
+        try {
+            const response = await fetch('/api/submit/event', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    businessId,
+                    titulo,
+                    descripcion,
+                    startDatetime,
+                    endDatetime,
+                    municipio,
+                    costo,
+                    link,
+                    whatsapp,
+                    fotos,
+                    contactWebsite: botProtection.honeypot,
+                    startedAt: botProtection.startedAt,
+                    captchaToken: botProtection.captchaToken,
+                }),
+            });
 
-        if (insertError) {
-            setError(insertError.message);
-            setSubmitting(false);
-        } else {
+            const result = await response.json().catch(() => null) as { error?: string } | null;
+
+            if (!response.ok) {
+                setError(result?.error || 'No pudimos guardar el evento.');
+                return;
+            }
+
             setSuccess(true);
+        } catch {
+            setError('No pudimos guardar el evento.');
+        } finally {
+            botProtection.resetChallenge();
+            setSubmitting(false);
         }
     };
 
@@ -88,7 +105,7 @@ export default function SubmitEventPage() {
             <main className="flex-1 flex items-center justify-center px-4">
                 <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 max-w-md w-full text-center shadow-lg border border-slate-200 dark:border-slate-700">
                     <span className="material-symbols-outlined text-6xl text-green-500 mb-4 block">check_circle</span>
-                    <h2 className="text-2xl font-bold mb-2">Evento Enviado</h2>
+                    <h2 className="text-2xl font-bold mb-2 text-slate-900 dark:text-white">Evento Enviado</h2>
                     <p className="text-slate-500 mb-6">Tu evento fue enviado y está pendiente de aprobación.</p>
                     <div className="flex flex-col gap-3">
                         <Link href="/events" className="bg-primary text-white px-6 py-3 rounded-lg font-medium hover:bg-primary-hover transition">
@@ -119,7 +136,7 @@ export default function SubmitEventPage() {
                         <div className="flex items-center gap-3 mb-6">
                             <span className="material-symbols-outlined text-3xl text-primary">event</span>
                             <div>
-                                <h1 className="text-2xl font-bold">Publicar Evento</h1>
+                                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Publicar Evento</h1>
                                 <p className="text-slate-500 text-sm">Comparte tu evento con la comunidad de Puerto Rico</p>
                             </div>
                         </div>
@@ -181,6 +198,11 @@ export default function SubmitEventPage() {
                                 </div>
                             </div>
 
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Fotos del Evento</label>
+                                <ImageUpload value={fotos} onChange={setFotos} max={5} />
+                            </div>
+
                             {error && (
                                 <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-start gap-3">
                                     <span className="material-symbols-outlined text-red-500 shrink-0">error</span>
@@ -188,7 +210,14 @@ export default function SubmitEventPage() {
                                 </div>
                             )}
 
-                            <button type="submit" disabled={submitting} className="w-full bg-primary hover:bg-primary-hover text-white font-bold py-3 rounded-lg transition disabled:opacity-50 flex items-center justify-center gap-2">
+                            <BotProtectionFields
+                                honeypot={botProtection.honeypot}
+                                onHoneypotChange={botProtection.setHoneypot}
+                                onCaptchaTokenChange={botProtection.setCaptchaToken}
+                                resetKey={botProtection.challengeNonce}
+                            />
+
+                            <button type="submit" disabled={submitting || (botProtection.captchaEnabled && !botProtection.captchaToken)} className="w-full bg-primary hover:bg-primary-hover text-white font-bold py-3 rounded-lg transition disabled:opacity-50 flex items-center justify-center gap-2">
                                 {submitting ? (
                                     <><div className="animate-spin rounded-full h-5 w-5 border-t-2 border-white"></div> Enviando...</>
                                 ) : (

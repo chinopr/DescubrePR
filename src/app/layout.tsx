@@ -1,12 +1,8 @@
-import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import "leaflet/dist/leaflet.css";
 import { AuthProvider } from "@/lib/auth/AuthProvider";
-
-const plusJakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  variable: '--font-plus-jakarta',
-});
+import MaterialSymbolsLoader from "@/components/ui/MaterialSymbolsLoader";
+import InstallPrompt from "@/components/ui/InstallPrompt";
 
 import type { Metadata, Viewport } from "next";
 
@@ -15,13 +11,30 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "DescubrePR",
-  description: "Una app para descubrir y promocionar lugares, restaurantes, actividades y servicios en todo Puerto Rico.",
+  title: {
+    default: "DescubrePR - Descubre lo Mejor de Puerto Rico",
+    template: "%s | DescubrePR",
+  },
+  description: "Descubre y promociona lugares, restaurantes, actividades y servicios en todo Puerto Rico. Playas, chinchorros, rutas y mas.",
   manifest: "/manifest.json",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://descubrepr.com"),
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "DescubrePR",
+  },
+  openGraph: {
+    type: "website",
+    siteName: "DescubrePR",
+    locale: "es_PR",
+    title: "DescubrePR - Descubre lo Mejor de Puerto Rico",
+    description: "Descubre y promociona lugares, restaurantes, actividades y servicios en todo Puerto Rico.",
+    images: [{ url: "/icon-512x512.png", width: 512, height: 512, alt: "DescubrePR" }],
+  },
+  twitter: {
+    card: "summary",
+    title: "DescubrePR",
+    description: "Descubre lo mejor de Puerto Rico.",
   },
 };
 
@@ -32,11 +45,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <head>
-        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
-      </head>
-      <body className={`${plusJakarta.variable} font-display bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 antialiased`}>
-        <AuthProvider>{children}</AuthProvider>
+      <body className="font-display bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 antialiased">
+        <MaterialSymbolsLoader />
+        <AuthProvider>
+          {children}
+          <InstallPrompt />
+        </AuthProvider>
       </body>
     </html>
   );

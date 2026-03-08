@@ -88,7 +88,7 @@ export default function FavoritesPage() {
                 const { data } = await supabase.from('promotions').select('id, titulo, business_id').in('id', grouped['promotion']);
                 for (const pr of data || []) {
                     const fav = favs.find(f => f.target_id === pr.id)!;
-                    resolved.push({ id: fav.id, target_type: 'promotion', target_id: pr.id, created_at: fav.created_at, name: pr.titulo, subtitle: 'Promoción', url: `/promos`, icon: 'local_offer' });
+                    resolved.push({ id: fav.id, target_type: 'promotion', target_id: pr.id, created_at: fav.created_at, name: pr.titulo, subtitle: 'Promoción', url: `/promos/${pr.id}`, icon: 'local_offer' });
                 }
             }
 
@@ -96,7 +96,7 @@ export default function FavoritesPage() {
                 const { data } = await supabase.from('service_listings').select('id, titulo, municipio').in('id', grouped['service']);
                 for (const s of data || []) {
                     const fav = favs.find(f => f.target_id === s.id)!;
-                    resolved.push({ id: fav.id, target_type: 'service', target_id: s.id, created_at: fav.created_at, name: s.titulo, subtitle: s.municipio, url: `/services`, icon: 'campaign' });
+                    resolved.push({ id: fav.id, target_type: 'service', target_id: s.id, created_at: fav.created_at, name: s.titulo, subtitle: s.municipio, url: `/services/${s.id}`, icon: 'campaign' });
                 }
             }
 
@@ -118,7 +118,7 @@ export default function FavoritesPage() {
     if (!user) return (
         <div className="flex flex-col items-center justify-center min-h-screen gap-4 px-4">
             <span className="material-symbols-outlined text-6xl text-slate-300">lock</span>
-            <p className="text-xl text-slate-500 text-center">Inicia sesión para ver tus favoritos</p>
+            <p className="text-xl text-slate-500 dark:text-slate-400 text-center">Inicia sesión para ver tus favoritos</p>
             <Link href="/auth/login" className="bg-primary text-white px-6 py-3 rounded-lg font-medium hover:bg-primary-hover transition">
                 Iniciar Sesión
             </Link>
@@ -132,8 +132,8 @@ export default function FavoritesPage() {
                 <div className="max-w-[900px] w-full flex flex-col gap-6">
 
                     <div>
-                        <h1 className="text-3xl md:text-4xl font-black mb-2">Mis Favoritos</h1>
-                        <p className="text-slate-500">Tus lugares, negocios y eventos guardados.</p>
+                        <h1 className="text-3xl md:text-4xl font-black mb-2 text-slate-900 dark:text-white">Mis Favoritos</h1>
+                        <p className="text-slate-500 dark:text-slate-400">Tus lugares, negocios y eventos guardados.</p>
                     </div>
 
                     <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1">
@@ -159,8 +159,8 @@ export default function FavoritesPage() {
                     ) : filtered.length === 0 ? (
                         <div className="text-center py-16">
                             <span className="material-symbols-outlined text-5xl text-slate-300 mb-3 block">favorite_border</span>
-                            <p className="text-lg text-slate-500 mb-2">No tienes favoritos guardados</p>
-                            <p className="text-sm text-slate-400">Explora y guarda tus lugares y negocios favoritos.</p>
+                            <p className="text-lg text-slate-500 dark:text-slate-400 mb-2">No tienes favoritos guardados</p>
+                            <p className="text-sm text-slate-400 dark:text-slate-500">Explora y guarda tus lugares y negocios favoritos.</p>
                             <Link href="/" className="inline-flex items-center gap-2 mt-4 text-primary font-medium hover:underline">
                                 <span className="material-symbols-outlined text-sm">explore</span> Explorar
                             </Link>
@@ -173,8 +173,8 @@ export default function FavoritesPage() {
                                         <span className="material-symbols-outlined text-primary">{item.icon}</span>
                                     </div>
                                     <Link href={item.url} className="flex-1 min-w-0">
-                                        <h3 className="font-bold truncate group-hover:text-primary transition-colors">{item.name}</h3>
-                                        <p className="text-sm text-slate-500 truncate">{item.subtitle}</p>
+                                        <h3 className="font-bold truncate text-slate-900 dark:text-white group-hover:text-primary transition-colors">{item.name}</h3>
+                                        <p className="text-sm text-slate-500 dark:text-slate-400 truncate">{item.subtitle}</p>
                                     </Link>
                                     <FavoriteButton id={item.target_id} type={item.target_type} className="shrink-0" />
                                 </div>

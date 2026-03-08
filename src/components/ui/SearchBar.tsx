@@ -7,9 +7,15 @@ interface SearchBarProps {
     initialPueblo?: string;
     initialQuery?: string;
     className?: string;
+    actionPath?: string;
 }
 
-export default function SearchBar({ initialPueblo = '', initialQuery = '', className = '' }: SearchBarProps) {
+export default function SearchBar({
+    initialPueblo = '',
+    initialQuery = '',
+    className = '',
+    actionPath = '/search',
+}: SearchBarProps) {
     const router = useRouter();
     const [pueblo, setPueblo] = useState(initialPueblo);
     const [query, setQuery] = useState(initialQuery);
@@ -20,13 +26,14 @@ export default function SearchBar({ initialPueblo = '', initialQuery = '', class
         if (pueblo) params.set('pueblo', pueblo);
         if (query) params.set('q', query);
 
-        router.push(`/map?${params.toString()}`);
+        const queryString = params.toString();
+        router.push(queryString ? `${actionPath}?${queryString}` : actionPath);
     };
 
     return (
         <form onSubmit={handleSearch} className={`w-full max-w-3xl z-10 bg-white dark:bg-slate-800 rounded-xl p-2 flex flex-col sm:flex-row items-center shadow-xl gap-2 sm:gap-0 ${className}`}>
             <div className="flex-1 flex w-full items-center px-4 sm:border-r border-slate-200 dark:border-slate-700 py-2 sm:py-0">
-                <span className="material-symbols-outlined text-slate-400">location_on</span>
+                <span className="material-symbols-outlined text-slate-400 dark:text-slate-500">location_on</span>
                 <select
                     value={pueblo}
                     onChange={(e) => setPueblo(e.target.value)}
@@ -39,7 +46,7 @@ export default function SearchBar({ initialPueblo = '', initialQuery = '', class
                 </select>
             </div>
             <div className="flex-1 flex w-full items-center px-4 py-2 sm:py-0 border-t sm:border-t-0 border-slate-200 dark:border-slate-700">
-                <span className="material-symbols-outlined text-slate-400">category</span>
+                <span className="material-symbols-outlined text-slate-400 dark:text-slate-500">category</span>
                 <input
                     type="text"
                     value={query}

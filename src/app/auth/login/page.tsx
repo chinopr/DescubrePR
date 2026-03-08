@@ -1,8 +1,10 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
+import BotProtectionFields from '@/components/ui/BotProtectionFields';
+import { useBotProtection } from '@/lib/security/use-bot-protection';
+import { createClient } from '@/lib/supabase/client';
 
 export default function LoginPage() {
     const [email, setEmail] = useState('');
@@ -10,25 +12,61 @@ export default function LoginPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const supabase = createClient();
     const router = useRouter();
+    const botProtection = useBotProtection();
+    const [supabase] = useState(() => createClient());
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError(null);
 
-        const { error } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-        });
+        try {
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email,
+                    password,
+                    validateOnly: true,
+                    contactWebsite: botProtection.honeypot,
+                    startedAt: botProtection.startedAt,
+                    captchaToken: botProtection.captchaToken,
+                }),
+            });
 
-        if (error) {
-            setError(error.message);
-            setLoading(false);
-        } else {
-            router.push('/profile');
+            const result = await response.json().catch(() => null) as { error?: string; redirectTo?: string } | null;
+
+            if (!response.ok) {
+                setError(result?.error || 'No pudimos iniciar sesión.');
+                return;
+            }
+
+            const { error: signInError } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+            });
+
+            if (signInError) {
+                setError(
+                    signInError.message === 'Invalid login credentials'
+                        ? 'No pudimos iniciar sesión con esas credenciales.'
+                        : 'No pudimos iniciar sesión.'
+                );
+                return;
+            }
+
+            const nextPath = typeof window !== 'undefined'
+                ? new URLSearchParams(window.location.search).get('next')
+                : null;
+            const safeNext = nextPath && nextPath.startsWith('/') ? nextPath : null;
+            router.push(safeNext || result?.redirectTo || '/profile');
             router.refresh();
+        } catch {
+            setError('No pudimos iniciar sesión.');
+        } finally {
+            botProtection.resetChallenge();
+            setLoading(false);
         }
     };
 
@@ -108,10 +146,17 @@ export default function LoginPage() {
                             </div>
                         )}
 
+                        <BotProtectionFields
+                            honeypot={botProtection.honeypot}
+                            onHoneypotChange={botProtection.setHoneypot}
+                            onCaptchaTokenChange={botProtection.setCaptchaToken}
+                            resetKey={botProtection.challengeNonce}
+                        />
+
                         <div>
                             <button
                                 type="submit"
-                                disabled={loading}
+                                disabled={loading || (botProtection.captchaEnabled && !botProtection.captchaToken)}
                                 className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 transition"
                             >
                                 {loading ? 'Entrando...' : 'Entrar'}
