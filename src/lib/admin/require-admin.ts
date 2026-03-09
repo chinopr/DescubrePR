@@ -29,8 +29,18 @@ export async function requireAdmin(): Promise<AdminContext | NextResponse> {
     return NextResponse.json({ error: 'Acceso denegado.' }, { status: 403 });
   }
 
-  return {
-    userId: user.id,
-    adminClient: createAdminClient(),
-  };
+  try {
+    const adminClient = createAdminClient();
+
+    return {
+      userId: user.id,
+      adminClient,
+    };
+  } catch (error) {
+    console.error('Admin client configuration error', error);
+    return NextResponse.json(
+      { error: 'Falta configurar SUPABASE_SERVICE_ROLE_KEY para las rutas admin.' },
+      { status: 500 }
+    );
+  }
 }

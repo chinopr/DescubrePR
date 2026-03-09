@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { verifyBotProtection } from '@/lib/security/bot-protection';
 import { checkRateLimit } from '@/lib/security/rate-limit';
+import { getServerPublishAccess } from '@/lib/subscriptions/server-access';
 import { validateEventSubmission } from '@/lib/validation/forms';
 
 export const runtime = 'nodejs';
@@ -43,6 +44,14 @@ export async function POST(request: Request) {
 
   if (!user) {
     return NextResponse.json({ error: 'Debes iniciar sesión.' }, { status: 401 });
+  }
+
+  const publishAccess = await getServerPublishAccess(user.id);
+  if (!publishAccess.canPublish) {
+    return NextResponse.json(
+      { error: publishAccess.reason || 'No tienes permisos para publicar eventos.' },
+      { status: 403 }
+    );
   }
 
   if (validated.data.businessId) {

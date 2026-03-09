@@ -3,8 +3,10 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Header from '@/components/ui/Header';
 import MobileNav from '@/components/ui/MobileNav';
+import EngagementViewTracker from '@/components/ui/EngagementViewTracker';
 import FavoriteButton from '@/components/ui/FavoriteButton';
 import ShareButtons from '@/components/ui/ShareButtons';
+import { trackEngagement } from '@/lib/engagement/tracking';
 import { createClient } from '@/lib/supabase/client';
 import type { Promotion } from '@/lib/types/database';
 
@@ -48,6 +50,7 @@ export default function PromoDetail({ id }: { id: string }) {
 
     return (
         <div className="flex min-h-screen w-full flex-col bg-background-light dark:bg-background-dark pb-16 md:pb-0">
+            <EngagementViewTracker targetType="promotion" targetId={promo.id} />
             <Header />
 
             <main className="flex-1 w-full max-w-[1100px] mx-auto bg-white dark:bg-slate-900 md:my-8 md:rounded-2xl md:shadow-sm overflow-hidden border-x border-y-0 md:border-y border-slate-200 dark:border-slate-800">
@@ -59,13 +62,13 @@ export default function PromoDetail({ id }: { id: string }) {
                         <ShareButtons title={promo.titulo} text={promo.descripcion || promo.titulo} hashtags={['PuertoRico', 'Promociones']} />
                     </div>
                     <div className="absolute bottom-0 left-0 w-full p-6 text-white">
-                        <span className="bg-primary px-3 py-1 rounded-full text-xs font-bold shadow-sm uppercase mb-2 inline-block">
+                        <span className="bg-primary px-3 py-1 rounded-full text-xs font-bold text-white shadow-sm uppercase mb-2 inline-block">
                             {promo.codigo || 'PROMO'}
                         </span>
-                        <h1 className="text-4xl md:text-5xl font-black mb-2">{promo.titulo}</h1>
+                        <h1 className="text-4xl md:text-5xl font-black text-white mb-2">{promo.titulo}</h1>
                         {promo.businesses?.nombre && (
-                            <div className="flex items-center gap-2 text-lg font-medium opacity-90">
-                                <span className="material-symbols-outlined text-[20px]">storefront</span>
+                            <div className="flex items-center gap-2 text-lg font-medium text-slate-100">
+                                <span className="material-symbols-outlined text-[20px] text-white/85">storefront</span>
                                 {promo.businesses.nombre}
                             </div>
                         )}
@@ -75,7 +78,7 @@ export default function PromoDetail({ id }: { id: string }) {
                 <div className="flex flex-col lg:flex-row gap-8 p-6 md:p-8">
                     <div className="flex-1 flex flex-col gap-8">
                         <section>
-                            <h2 className="text-2xl font-bold mb-4">Detalles de la promoción</h2>
+                            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">Detalles de la promoción</h2>
                             <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-lg">
                                 {promo.descripcion || 'Sin descripción disponible.'}
                             </p>
@@ -83,7 +86,7 @@ export default function PromoDetail({ id }: { id: string }) {
 
                         {promo.condiciones && (
                             <section>
-                                <h3 className="text-xl font-bold mb-3">Condiciones</h3>
+                                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">Condiciones</h3>
                                 <p className="text-slate-600 dark:text-slate-300 leading-relaxed">{promo.condiciones}</p>
                             </section>
                         )}
@@ -91,7 +94,7 @@ export default function PromoDetail({ id }: { id: string }) {
 
                     <div className="w-full lg:w-80 shrink-0 flex flex-col gap-6">
                         <div className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-xl border border-slate-200 dark:border-slate-700">
-                            <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                            <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                                 <span className="material-symbols-outlined text-primary">sell</span>
                                 Resumen
                             </h3>
@@ -109,6 +112,7 @@ export default function PromoDetail({ id }: { id: string }) {
                                 {promo.businesses?.id && (
                                     <Link
                                         href={`/businesses/${promo.businesses.id}`}
+                                        onClick={() => trackEngagement({ action: 'click', targetType: 'promotion', targetId: promo.id })}
                                         className="mt-2 w-full bg-primary hover:bg-primary-hover text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm"
                                     >
                                         <span className="material-symbols-outlined">storefront</span>

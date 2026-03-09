@@ -5,7 +5,9 @@ import Link from 'next/link';
 import Header from '@/components/ui/Header';
 import MobileNav from '@/components/ui/MobileNav';
 import SearchBar from '@/components/ui/SearchBar';
+import { trackEngagement } from '@/lib/engagement/tracking';
 import { createClient } from '@/lib/supabase/client';
+import { isMissingBoostColumnError } from '@/lib/supabase/boost-fallback';
 
 type TabKey = 'all' | 'places' | 'businesses' | 'events' | 'promos' | 'services';
 
@@ -58,8 +60,15 @@ function SearchPageContent() {
                 let query = supabase.from('places').select('id, nombre, descripcion, municipio, fotos, categorias').eq('estado', 'published');
                 if (pueblo) query = query.eq('municipio', pueblo);
                 if (q) query = query.or(`nombre.ilike.${ilike},descripcion.ilike.${ilike}`);
-                const { data } = await query.limit(10);
-                (data || []).forEach(r => all.push({
+                query = query.order('boost_score', { ascending: false }).order('created_at', { ascending: false });
+                let response = await query.limit(10);
+                if (isMissingBoostColumnError(response.error)) {
+                    let fallbackQuery = supabase.from('places').select('id, nombre, descripcion, municipio, fotos, categorias').eq('estado', 'published');
+                    if (pueblo) fallbackQuery = fallbackQuery.eq('municipio', pueblo);
+                    if (q) fallbackQuery = fallbackQuery.or(`nombre.ilike.${ilike},descripcion.ilike.${ilike}`);
+                    response = await fallbackQuery.order('created_at', { ascending: false }).limit(10);
+                }
+                (response.data || []).forEach(r => all.push({
                     id: r.id, type: 'place', titulo: r.nombre, descripcion: r.descripcion,
                     municipio: r.municipio, imagen: r.fotos?.[0] || null, extra: r.categorias?.join(', ')
                 }));
@@ -69,8 +78,15 @@ function SearchPageContent() {
                 let query = supabase.from('businesses').select('id, nombre, descripcion, municipio, categorias').eq('estado', 'published');
                 if (pueblo) query = query.eq('municipio', pueblo);
                 if (q) query = query.or(`nombre.ilike.${ilike},descripcion.ilike.${ilike}`);
-                const { data } = await query.limit(10);
-                (data || []).forEach(r => all.push({
+                query = query.order('boost_score', { ascending: false }).order('created_at', { ascending: false });
+                let response = await query.limit(10);
+                if (isMissingBoostColumnError(response.error)) {
+                    let fallbackQuery = supabase.from('businesses').select('id, nombre, descripcion, municipio, categorias').eq('estado', 'published');
+                    if (pueblo) fallbackQuery = fallbackQuery.eq('municipio', pueblo);
+                    if (q) fallbackQuery = fallbackQuery.or(`nombre.ilike.${ilike},descripcion.ilike.${ilike}`);
+                    response = await fallbackQuery.order('created_at', { ascending: false }).limit(10);
+                }
+                (response.data || []).forEach(r => all.push({
                     id: r.id, type: 'business', titulo: r.nombre, descripcion: r.descripcion,
                     municipio: r.municipio, imagen: null, extra: r.categorias?.join(', ')
                 }));
@@ -81,8 +97,15 @@ function SearchPageContent() {
                     .eq('estado', 'approved').gte('start_datetime', new Date().toISOString());
                 if (pueblo) query = query.eq('municipio', pueblo);
                 if (q) query = query.or(`titulo.ilike.${ilike},descripcion.ilike.${ilike}`);
-                const { data } = await query.order('start_datetime', { ascending: true }).limit(10);
-                (data || []).forEach(r => all.push({
+                let response = await query.order('boost_score', { ascending: false }).order('start_datetime', { ascending: true }).limit(10);
+                if (isMissingBoostColumnError(response.error)) {
+                    let fallbackQuery = supabase.from('events').select('id, titulo, descripcion, municipio, fotos, start_datetime')
+                        .eq('estado', 'approved').gte('start_datetime', new Date().toISOString());
+                    if (pueblo) fallbackQuery = fallbackQuery.eq('municipio', pueblo);
+                    if (q) fallbackQuery = fallbackQuery.or(`titulo.ilike.${ilike},descripcion.ilike.${ilike}`);
+                    response = await fallbackQuery.order('start_datetime', { ascending: true }).limit(10);
+                }
+                (response.data || []).forEach(r => all.push({
                     id: r.id, type: 'event', titulo: r.titulo, descripcion: r.descripcion,
                     municipio: r.municipio, imagen: r.fotos?.[0] || null,
                     extra: new Date(r.start_datetime).toLocaleDateString('es-PR', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -93,8 +116,14 @@ function SearchPageContent() {
                 let query = supabase.from('promotions').select('id, titulo, descripcion, fotos, end_date')
                     .eq('estado', 'approved').gte('end_date', new Date().toISOString().split('T')[0]);
                 if (q) query = query.or(`titulo.ilike.${ilike},descripcion.ilike.${ilike}`);
-                const { data } = await query.limit(10);
-                (data || []).forEach(r => all.push({
+                let response = await query.order('boost_score', { ascending: false }).order('created_at', { ascending: false }).limit(10);
+                if (isMissingBoostColumnError(response.error)) {
+                    let fallbackQuery = supabase.from('promotions').select('id, titulo, descripcion, fotos, end_date')
+                        .eq('estado', 'approved').gte('end_date', new Date().toISOString().split('T')[0]);
+                    if (q) fallbackQuery = fallbackQuery.or(`titulo.ilike.${ilike},descripcion.ilike.${ilike}`);
+                    response = await fallbackQuery.order('created_at', { ascending: false }).limit(10);
+                }
+                (response.data || []).forEach(r => all.push({
                     id: r.id, type: 'promo', titulo: r.titulo, descripcion: r.descripcion,
                     municipio: '', imagen: r.fotos?.[0] || null,
                     extra: `Hasta ${new Date(r.end_date).toLocaleDateString('es-PR', { day: 'numeric', month: 'short' })}`
@@ -106,8 +135,15 @@ function SearchPageContent() {
                     .eq('estado', 'approved');
                 if (pueblo) query = query.eq('municipio', pueblo);
                 if (q) query = query.or(`titulo.ilike.${ilike},descripcion.ilike.${ilike}`);
-                const { data } = await query.limit(10);
-                (data || []).forEach(r => all.push({
+                let response = await query.order('boost_score', { ascending: false }).order('created_at', { ascending: false }).limit(10);
+                if (isMissingBoostColumnError(response.error)) {
+                    let fallbackQuery = supabase.from('service_listings').select('id, titulo, descripcion, municipio, fotos, precio, tipo')
+                        .eq('estado', 'approved');
+                    if (pueblo) fallbackQuery = fallbackQuery.eq('municipio', pueblo);
+                    if (q) fallbackQuery = fallbackQuery.or(`titulo.ilike.${ilike},descripcion.ilike.${ilike}`);
+                    response = await fallbackQuery.order('created_at', { ascending: false }).limit(10);
+                }
+                (response.data || []).forEach(r => all.push({
                     id: r.id, type: 'service', titulo: r.titulo, descripcion: r.descripcion,
                     municipio: r.municipio, imagen: r.fotos?.[0] || null,
                     extra: r.precio ? `$${r.precio}` : r.tipo
@@ -215,6 +251,7 @@ function SearchPageContent() {
                                 <Link
                                     key={`${r.type}-${r.id}`}
                                     href={`${typeLink[r.type]}${r.id}`}
+                                    onClick={() => trackEngagement({ action: 'click', targetType: r.type === 'promo' ? 'promotion' : r.type, targetId: r.id })}
                                     className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 flex gap-4 hover:shadow-md transition-shadow group"
                                 >
                                     {r.imagen && (

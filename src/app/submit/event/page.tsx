@@ -4,11 +4,13 @@ import Link from 'next/link';
 import Header from '@/components/ui/Header';
 import MobileNav from '@/components/ui/MobileNav';
 import BotProtectionFields from '@/components/ui/BotProtectionFields';
+import PublishGateNotice from '@/components/ui/PublishGateNotice';
 import { useAuth } from '@/lib/auth/AuthProvider';
 import { createClient } from '@/lib/supabase/client';
 import ImageUpload from '@/components/ui/ImageUpload';
 import { MUNICIPIOS } from '@/lib/constants/municipios';
 import { useBotProtection } from '@/lib/security/use-bot-protection';
+import { usePublishAccess } from '@/lib/subscriptions/use-publish-access';
 import type { Business } from '@/lib/types/database';
 
 export default function SubmitEventPage() {
@@ -30,6 +32,7 @@ export default function SubmitEventPage() {
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
     const botProtection = useBotProtection();
+    const publishAccess = usePublishAccess();
 
     useEffect(() => {
         if (!user) return;
@@ -96,6 +99,18 @@ export default function SubmitEventPage() {
             <Link href="/auth/login" className="bg-primary text-white px-6 py-3 rounded-lg font-medium hover:bg-primary-hover transition">
                 Iniciar Sesión
             </Link>
+        </div>
+    );
+
+    if (!publishAccess.loading && !publishAccess.canPublish) return (
+        <div className="flex min-h-screen w-full flex-col bg-background-light dark:bg-background-dark pb-16 md:pb-0">
+            <Header />
+            <main className="flex-1 flex items-center justify-center px-4">
+                <div className="max-w-lg w-full">
+                    <PublishGateNotice reason={publishAccess.reason || 'Necesitas un plan activo para publicar eventos.'} businessCount={publishAccess.businessCount} />
+                </div>
+            </main>
+            <MobileNav />
         </div>
     );
 

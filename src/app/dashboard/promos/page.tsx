@@ -2,7 +2,10 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth/AuthProvider';
+import BoostActionButton from '@/components/ui/BoostActionButton';
+import PublishGateNotice from '@/components/ui/PublishGateNotice';
 import { createClient } from '@/lib/supabase/client';
+import { usePublishAccess } from '@/lib/subscriptions/use-publish-access';
 import type { Promotion } from '@/lib/types/database';
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
@@ -17,6 +20,7 @@ export default function MyPromosPage() {
     const supabase = createClient();
     const [promos, setPromos] = useState<(Promotion & { business_name?: string })[]>([]);
     const [loading, setLoading] = useState(true);
+    const publishAccess = usePublishAccess();
 
     useEffect(() => {
         if (!user) return;
@@ -48,9 +52,11 @@ export default function MyPromosPage() {
                     <h1 className="text-3xl font-black mb-1 text-slate-900 dark:text-white">Mis Promociones</h1>
                     <p className="text-slate-600 dark:text-slate-400">{promos.length} creada(s)</p>
                 </div>
-                <Link href="/submit/promo" className="bg-primary hover:bg-primary-hover text-white font-bold py-2.5 px-5 rounded-lg transition flex items-center gap-2 text-sm">
-                    <span className="material-symbols-outlined text-lg">add</span> Nueva
-                </Link>
+                {publishAccess.canPublish && (
+                    <Link href="/submit/promo" className="bg-primary hover:bg-primary-hover text-white font-bold py-2.5 px-5 rounded-lg transition flex items-center gap-2 text-sm">
+                        <span className="material-symbols-outlined text-lg">add</span> Nueva
+                    </Link>
+                )}
             </div>
 
             {loading ? (
@@ -61,9 +67,15 @@ export default function MyPromosPage() {
                 <div className="text-center py-16 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100">
                     <span className="material-symbols-outlined text-5xl text-slate-300 mb-3 block">local_offer</span>
                     <p className="text-lg text-slate-600 dark:text-slate-400 mb-4">No tienes promociones creadas</p>
-                    <Link href="/submit/promo" className="inline-flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-lg font-medium hover:bg-primary-hover transition">
-                        <span className="material-symbols-outlined">add</span> Crear Promoción
-                    </Link>
+                    {publishAccess.canPublish ? (
+                        <Link href="/submit/promo" className="inline-flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-lg font-medium hover:bg-primary-hover transition">
+                            <span className="material-symbols-outlined">add</span> Crear Promoción
+                        </Link>
+                    ) : (
+                        <div className="max-w-md mx-auto">
+                            <PublishGateNotice reason={publishAccess.reason || 'Necesitas un plan activo para publicar promociones.'} businessCount={publishAccess.businessCount} />
+                        </div>
+                    )}
                 </div>
             ) : (
                 <div className="flex flex-col gap-3">
@@ -85,10 +97,28 @@ export default function MyPromosPage() {
                                         {promo.business_name} &middot; {formatDate(promo.start_date)} - {formatDate(promo.end_date)}
                                         {promo.codigo && <span className="ml-2 font-mono bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-xs">{promo.codigo}</span>}
                                     </p>
+                                    <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500 dark:text-slate-400">
+                                        <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 dark:bg-slate-800">
+                                            <span className="material-symbols-outlined text-[14px]">visibility</span>
+                                            {promo.metrics_view_count} vistas
+                                        </span>
+                                        <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 dark:bg-slate-800">
+                                            <span className="material-symbols-outlined text-[14px]">ads_click</span>
+                                            {promo.metrics_click_count} clics
+                                        </span>
+                                    </div>
                                 </div>
-                                <Link href={`/dashboard/promos/${promo.id}/edit`} className="text-slate-700 dark:text-slate-300 hover:text-primary text-sm font-medium flex items-center gap-1 transition shrink-0">
-                                    <span className="material-symbols-outlined text-sm">edit</span> Editar
-                                </Link>
+                                <div className="flex flex-col items-end gap-3 shrink-0">
+                                    <BoostActionButton
+                                        targetType="promotion"
+                                        targetId={promo.id}
+                                        boostExpiresAt={promo.boost_expires_at}
+                                        boostScore={promo.boost_score}
+                                    />
+                                    <Link href={`/dashboard/promos/${promo.id}/edit`} className="text-slate-700 dark:text-slate-300 hover:text-primary text-sm font-medium flex items-center gap-1 transition shrink-0">
+                                        <span className="material-symbols-outlined text-sm">edit</span> Editar
+                                    </Link>
+                                </div>
                             </div>
                         );
                     })}

@@ -85,8 +85,9 @@ export default function NewPlacePage() {
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Direccion</label>
-                        <input type="text" value={addressText} onChange={e => setAddressText(e.target.value)} className="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-700" placeholder="Opcional" />
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Dirección o Link de Google Maps</label>
+                        <input type="text" value={addressText} onChange={e => setAddressText(e.target.value)} className="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-700" placeholder="Ej: Sector La Parguera o https://maps.google.com/..." />
+                        <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">Si pegas un enlace de Google Maps, el botón <span className="font-semibold">Cómo llegar</span> del detalle abrirá ese destino.</p>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Costo</label>

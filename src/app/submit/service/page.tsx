@@ -20,6 +20,7 @@ export default function SubmitServicePage() {
     const [precio, setPrecio] = useState('');
     const [telefono, setTelefono] = useState('');
     const [whatsapp, setWhatsapp] = useState('');
+    const [locationReference, setLocationReference] = useState('');
     const [fotos, setFotos] = useState<string[]>([]);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -50,6 +51,7 @@ export default function SubmitServicePage() {
                     precio,
                     telefono,
                     whatsapp,
+                    locationReference,
                     fotos,
                     contactWebsite: botProtection.honeypot,
                     startedAt: botProtection.startedAt,
@@ -101,7 +103,7 @@ export default function SubmitServicePage() {
                         <Link href="/services" className="bg-primary text-white px-6 py-3 rounded-lg font-medium hover:bg-primary-hover transition">
                             Ver Clasificados
                         </Link>
-                        <button onClick={() => { setSuccess(false); setTitulo(''); setDescripcion(''); setMunicipio(''); setPrecio(''); setTelefono(''); setWhatsapp(''); }} className="text-primary font-medium hover:underline">
+                        <button onClick={() => { setSuccess(false); setTitulo(''); setDescripcion(''); setMunicipio(''); setPrecio(''); setTelefono(''); setWhatsapp(''); setLocationReference(''); }} className="text-primary font-medium hover:underline">
                             Publicar Otro
                         </button>
                     </div>
@@ -166,6 +168,22 @@ export default function SubmitServicePage() {
                                     <input type="number" min="0" step="0.01" value={precio} onChange={e => setPrecio(e.target.value)} className="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-700 focus:ring-primary focus:border-primary" placeholder="Dejar vacío = Contactar" />
                                 </div>
                             </div>
+
+                            {tipo === 'alquiler' && (
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Ubicación para Cómo Llegar</label>
+                                    <input
+                                        type="text"
+                                        value={locationReference}
+                                        onChange={e => setLocationReference(e.target.value)}
+                                        className="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-700 focus:ring-primary focus:border-primary"
+                                        placeholder="18.4655, -66.1057 o enlace de Google Maps"
+                                    />
+                                    <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                                        Solo para alquileres. Si llenas este campo, el botón <span className="font-semibold">Cómo llegar</span> del detalle llevará al mapa de esa ubicación.
+                                    </p>
+                                </div>
+                            )}
 
                             <div className="border-t border-slate-200 dark:border-slate-700 pt-5">
                                 <h3 className="font-bold text-lg mb-3 flex items-center gap-2">

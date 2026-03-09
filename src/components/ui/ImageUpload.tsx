@@ -10,6 +10,7 @@ interface ImageUploadProps {
 
 export default function ImageUpload({ value, onChange, max = 5 }: ImageUploadProps) {
     const [uploading, setUploading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
     const supabase = createClient();
 
@@ -17,27 +18,50 @@ export default function ImageUpload({ value, onChange, max = 5 }: ImageUploadPro
         const files = e.target.files;
         if (!files || files.length === 0) return;
 
+        setError(null);
         setUploading(true);
         const newUrls: string[] = [];
 
         for (const file of Array.from(files)) {
             if (value.length + newUrls.length >= max) break;
 
+            if (!file.type.startsWith('image/')) {
+                setError('Solo se permiten imágenes.');
+                continue;
+            }
+
+            if (file.size > 5 * 1024 * 1024) {
+                setError('Cada imagen debe pesar menos de 5MB.');
+                continue;
+            }
+
             const ext = file.name.split('.').pop();
             const path = `${crypto.randomUUID()}.${ext}`;
 
-            const { error } = await supabase.storage.from('media').upload(path, file, {
+            const { error: uploadError } = await supabase.storage.from('media').upload(path, file, {
                 cacheControl: '3600',
                 upsert: false,
             });
 
-            if (!error) {
+            if (!uploadError) {
                 const { data: urlData } = supabase.storage.from('media').getPublicUrl(path);
                 newUrls.push(urlData.publicUrl);
+            } else {
+                const normalizedMessage = uploadError.message?.toLowerCase() || '';
+                if (normalizedMessage.includes('row-level security') || normalizedMessage.includes('permission')) {
+                    setError('No se pudo subir la imagen por permisos. Cierra sesión e inicia de nuevo.');
+                } else if (normalizedMessage.includes('bucket')) {
+                    setError('No se pudo subir la imagen porque el bucket de media no está disponible.');
+                } else {
+                    setError(uploadError.message || 'No se pudo subir una de las imágenes.');
+                }
             }
         }
 
-        onChange([...value, ...newUrls]);
+        if (newUrls.length > 0) {
+            onChange([...value, ...newUrls]);
+        }
+
         setUploading(false);
         if (inputRef.current) inputRef.current.value = '';
     };
@@ -87,13 +111,18 @@ export default function ImageUpload({ value, onChange, max = 5 }: ImageUploadPro
             <input
                 ref={inputRef}
                 type="file"
-                accept="image/jpeg,image/png,image/webp,image/gif"
+                accept="image/*"
                 multiple
                 onChange={handleUpload}
                 className="hidden"
             />
 
             <p className="text-xs text-slate-500 dark:text-slate-400">{value.length}/{max} fotos (max 5MB c/u)</p>
+            {error ? (
+                <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
+                    {error}
+                </div>
+            ) : null}
         </div>
     );
 }

@@ -8,6 +8,7 @@ export type FavoriteTarget = 'place' | 'business' | 'event' | 'promotion' | 'ser
 export type ReportTarget = FavoriteTarget | 'profile';
 export type PlaceSource = 'user' | 'admin';
 export type SubscriptionStatus = 'trialing' | 'active' | 'past_due' | 'canceled' | 'unpaid' | 'incomplete' | 'incomplete_expired' | 'paused';
+export type BoostableTarget = 'business' | 'event' | 'promotion' | 'service';
 
 export interface Profile {
   id: string;
@@ -36,6 +37,10 @@ export interface Business {
   categorias: string[];
   verificado: boolean;
   estado: ContentStatus;
+  boost_score: number;
+  boost_expires_at: string | null;
+  metrics_view_count: number;
+  metrics_click_count: number;
   created_at: string;
   updated_at: string;
 }
@@ -54,6 +59,10 @@ export interface Place {
   fotos: string[];
   estado: ContentStatus;
   fuente: PlaceSource;
+  boost_score: number;
+  boost_expires_at: string | null;
+  metrics_view_count: number;
+  metrics_click_count: number;
   created_at: string;
   updated_at: string;
 }
@@ -76,6 +85,10 @@ export interface Event {
   fotos: string[];
   estado: ContentStatus;
   destacado: boolean;
+  boost_score: number;
+  boost_expires_at: string | null;
+  metrics_view_count: number;
+  metrics_click_count: number;
   created_at: string;
   updated_at: string;
 }
@@ -92,6 +105,10 @@ export interface Promotion {
   fotos: string[];
   estado: ContentStatus;
   destacado: boolean;
+  boost_score: number;
+  boost_expires_at: string | null;
+  metrics_view_count: number;
+  metrics_click_count: number;
   created_at: string;
   updated_at: string;
 }
@@ -111,6 +128,10 @@ export interface ServiceListing {
   fotos: string[];
   estado: ContentStatus;
   destacado: boolean;
+  boost_score: number;
+  boost_expires_at: string | null;
+  metrics_view_count: number;
+  metrics_click_count: number;
   created_at: string;
   updated_at: string;
 }

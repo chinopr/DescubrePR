@@ -7,7 +7,10 @@ import { useAuth } from '@/lib/auth/AuthProvider';
 const NAV_ITEMS = [
     { href: '/admin', label: 'Dashboard', icon: 'dashboard' },
     { href: '/admin/moderation', label: 'Moderación', icon: 'fact_check' },
+    { href: '/admin/businesses', label: 'Negocios', icon: 'storefront' },
     { href: '/admin/places', label: 'Lugares', icon: 'place' },
+    { href: '/admin/promos/new', label: 'Nueva Promo', icon: 'local_offer' },
+    { href: '/admin/services/new', label: 'Nuevo Clasificado', icon: 'campaign' },
     { href: '/admin/users', label: 'Usuarios', icon: 'group' },
 ];
 

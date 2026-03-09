@@ -1,10 +1,11 @@
-import Link from 'next/link';
+import PromosPageClientActions from './PromosPageClientActions';
 import Header from '@/components/ui/Header';
 import MobileNav from '@/components/ui/MobileNav';
 import PromoCard from '@/components/ui/PromoCard';
 import { createClient } from '@/lib/supabase/server';
 import type { Promotion } from '@/lib/types/database';
 import { buildPageMetadata } from '@/lib/seo/metadata';
+import { isMissingBoostColumnError } from '@/lib/supabase/boost-fallback';
 
 type PromotionWithBusiness = Promotion & { businesses?: { nombre: string } };
 
@@ -18,16 +19,28 @@ export const metadata = buildPageMetadata({
 
 export default async function PromosPage() {
     const supabase = await createClient();
-    const { data } = await supabase
+    let response = await supabase
         .from('promotions')
         .select('*, businesses(nombre)')
         .eq('estado', 'approved')
         .gte('end_date', new Date().toISOString().split('T')[0])
+        .order('boost_score', { ascending: false })
         .order('destacado', { ascending: false })
         .order('created_at', { ascending: false })
         .limit(20);
 
-    const promos = (data || []) as PromotionWithBusiness[];
+    if (isMissingBoostColumnError(response.error)) {
+        response = await supabase
+            .from('promotions')
+            .select('*, businesses(nombre)')
+            .eq('estado', 'approved')
+            .gte('end_date', new Date().toISOString().split('T')[0])
+            .order('destacado', { ascending: false })
+            .order('created_at', { ascending: false })
+            .limit(20);
+    }
+
+    const promos = (response.data || []) as PromotionWithBusiness[];
 
     return (
         <div className="flex min-h-screen w-full flex-col bg-background-light dark:bg-background-dark pb-16 md:pb-0">
@@ -40,10 +53,7 @@ export default async function PromosPage() {
                         <p className="text-lg text-slate-500 dark:text-slate-400 max-w-2xl mb-4">
                             Descubre las mejores ofertas, descuentos y promociones locales.
                         </p>
-                        <Link href="/submit/promo" className="bg-primary hover:bg-primary-hover text-white font-bold py-3 px-6 rounded-lg transition-colors shadow-md flex items-center gap-2">
-                            <span className="material-symbols-outlined">add_circle</span>
-                            Publicar Promoción
-                        </Link>
+                        <PromosPageClientActions />
                     </div>
 
                     {promos.length === 0 ? (

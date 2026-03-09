@@ -17,6 +17,14 @@ type StripeCheckoutSession = {
     metadata?: Record<string, string>
 }
 
+export type StripeCheckoutSessionObject = {
+    id: string
+    customer: string | null
+    subscription: string | null
+    client_reference_id: string | null
+    metadata?: Record<string, string>
+}
+
 export type StripeSubscriptionObject = {
     id: string
     customer: string | null
@@ -139,6 +147,10 @@ export async function createStripeBillingPortalSession({
         method: 'POST',
         body: params,
     })
+}
+
+export async function retrieveStripeCheckoutSession(sessionId: string) {
+    return stripeRequest<StripeCheckoutSessionObject>(`/checkout/sessions/${sessionId}`)
 }
 
 export async function retrieveStripeSubscription(subscriptionId: string) {

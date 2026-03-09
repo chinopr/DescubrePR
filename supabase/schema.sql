@@ -30,6 +30,10 @@ create table public.businesses (
   categorias text[] default '{}',
   verificado boolean default false,
   estado text check (estado in ('draft', 'pending', 'published', 'rejected')) default 'pending',
+  boost_score integer default 0 not null,
+  boost_expires_at timestamp with time zone,
+  metrics_view_count bigint default 0 not null,
+  metrics_click_count bigint default 0 not null,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
@@ -50,6 +54,10 @@ create table public.places (
   fotos text[] default '{}',
   estado text check (estado in ('pending', 'published', 'rejected')) default 'pending',
   fuente text check (fuente in ('user', 'admin')) default 'user',
+  boost_score integer default 0 not null,
+  boost_expires_at timestamp with time zone,
+  metrics_view_count bigint default 0 not null,
+  metrics_click_count bigint default 0 not null,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
@@ -74,6 +82,10 @@ create table public.events (
   fotos text[] default '{}',
   estado text check (estado in ('pending', 'approved', 'rejected')) default 'pending',
   destacado boolean default false,
+  boost_score integer default 0 not null,
+  boost_expires_at timestamp with time zone,
+  metrics_view_count bigint default 0 not null,
+  metrics_click_count bigint default 0 not null,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
@@ -92,6 +104,10 @@ create table public.promotions (
   fotos text[] default '{}',
   estado text check (estado in ('pending', 'approved', 'rejected', 'expired')) default 'pending',
   destacado boolean default false,
+  boost_score integer default 0 not null,
+  boost_expires_at timestamp with time zone,
+  metrics_view_count bigint default 0 not null,
+  metrics_click_count bigint default 0 not null,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
@@ -113,6 +129,10 @@ create table public.service_listings (
   fotos text[] default '{}',
   estado text check (estado in ('pending', 'approved', 'rejected', 'sold')) default 'pending',
   destacado boolean default false,
+  boost_score integer default 0 not null,
+  boost_expires_at timestamp with time zone,
+  metrics_view_count bigint default 0 not null,
+  metrics_click_count bigint default 0 not null,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
@@ -264,6 +284,10 @@ begin
     new.owner_id := old.owner_id;
     new.estado := old.estado;
     new.verificado := old.verificado;
+    new.boost_score := old.boost_score;
+    new.boost_expires_at := old.boost_expires_at;
+    new.metrics_view_count := old.metrics_view_count;
+    new.metrics_click_count := old.metrics_click_count;
     new.created_at := old.created_at;
   end if;
 
@@ -286,6 +310,13 @@ begin
 
   new.estado := 'pending';
   new.fuente := 'user';
+  if tg_op = 'UPDATE' then
+    new.boost_score := old.boost_score;
+    new.boost_expires_at := old.boost_expires_at;
+    new.metrics_view_count := old.metrics_view_count;
+    new.metrics_click_count := old.metrics_click_count;
+    new.created_at := old.created_at;
+  end if;
   new.updated_at := timezone('utc'::text, now());
   return new;
 end;
@@ -311,6 +342,10 @@ begin
     new.created_by := old.created_by;
     new.estado := old.estado;
     new.destacado := old.destacado;
+    new.boost_score := old.boost_score;
+    new.boost_expires_at := old.boost_expires_at;
+    new.metrics_view_count := old.metrics_view_count;
+    new.metrics_click_count := old.metrics_click_count;
     new.business_id := old.business_id;
     new.place_id := old.place_id;
     new.created_at := old.created_at;
@@ -340,6 +375,10 @@ begin
     new.business_id := old.business_id;
     new.estado := old.estado;
     new.destacado := old.destacado;
+    new.boost_score := old.boost_score;
+    new.boost_expires_at := old.boost_expires_at;
+    new.metrics_view_count := old.metrics_view_count;
+    new.metrics_click_count := old.metrics_click_count;
     new.created_at := old.created_at;
   end if;
 
@@ -368,6 +407,10 @@ begin
     new.user_id := old.user_id;
     new.estado := old.estado;
     new.destacado := old.destacado;
+    new.boost_score := old.boost_score;
+    new.boost_expires_at := old.boost_expires_at;
+    new.metrics_view_count := old.metrics_view_count;
+    new.metrics_click_count := old.metrics_click_count;
     new.created_at := old.created_at;
   end if;
 
@@ -394,6 +437,62 @@ begin
   return new;
 end;
 $$ language plpgsql security definer;
+
+create or replace function public.increment_content_metric(
+  metric_target_type text,
+  metric_target_id uuid,
+  metric_kind text
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if metric_kind not in ('view', 'click') then
+    raise exception 'Invalid metric kind';
+  end if;
+
+  if metric_target_type = 'business' then
+    update public.businesses
+    set
+      metrics_view_count = metrics_view_count + case when metric_kind = 'view' then 1 else 0 end,
+      metrics_click_count = metrics_click_count + case when metric_kind = 'click' then 1 else 0 end,
+      updated_at = updated_at
+    where id = metric_target_id;
+  elsif metric_target_type = 'place' then
+    update public.places
+    set
+      metrics_view_count = metrics_view_count + case when metric_kind = 'view' then 1 else 0 end,
+      metrics_click_count = metrics_click_count + case when metric_kind = 'click' then 1 else 0 end,
+      updated_at = updated_at
+    where id = metric_target_id;
+  elsif metric_target_type = 'event' then
+    update public.events
+    set
+      metrics_view_count = metrics_view_count + case when metric_kind = 'view' then 1 else 0 end,
+      metrics_click_count = metrics_click_count + case when metric_kind = 'click' then 1 else 0 end,
+      updated_at = updated_at
+    where id = metric_target_id;
+  elsif metric_target_type = 'promotion' then
+    update public.promotions
+    set
+      metrics_view_count = metrics_view_count + case when metric_kind = 'view' then 1 else 0 end,
+      metrics_click_count = metrics_click_count + case when metric_kind = 'click' then 1 else 0 end,
+      updated_at = updated_at
+    where id = metric_target_id;
+  elsif metric_target_type = 'service' then
+    update public.service_listings
+    set
+      metrics_view_count = metrics_view_count + case when metric_kind = 'view' then 1 else 0 end,
+      metrics_click_count = metrics_click_count + case when metric_kind = 'click' then 1 else 0 end,
+      updated_at = updated_at
+    where id = metric_target_id;
+  else
+    raise exception 'Invalid metric target type';
+  end if;
+end;
+$$;
 
 -- Trigger to call handle_new_user on auth.users insert
 create trigger on_auth_user_created

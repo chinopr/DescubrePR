@@ -2,12 +2,18 @@
 import { useEffect, useState } from 'react';
 import Header from '@/components/ui/Header';
 import MobileNav from '@/components/ui/MobileNav';
+import EngagementViewTracker from '@/components/ui/EngagementViewTracker';
 import FavoriteButton from '@/components/ui/FavoriteButton';
 import ShareButtons from '@/components/ui/ShareButtons';
 import PromoCard from '@/components/ui/PromoCard';
 import EventCard from '@/components/ui/EventCard';
+import dynamic from 'next/dynamic';
+import { trackEngagement } from '@/lib/engagement/tracking';
+import { buildGoogleMapsHref } from '@/lib/maps/location-input';
 import { createClient } from '@/lib/supabase/client';
 import type { Business, Promotion, Event } from '@/lib/types/database';
+
+const MapView = dynamic(() => import('@/components/ui/MapView'), { ssr: false });
 
 export default function BusinessDetail({ id }: { id: string }) {
     const [business, setBusiness] = useState<Business | null>(null);
@@ -49,6 +55,12 @@ export default function BusinessDetail({ id }: { id: string }) {
     const biz = business as Business & { cover_url?: string; avatar_url?: string };
     const coverUrl = biz.cover_url || 'https://images.unsplash.com/photo-1497935586351-b67a49e012bf?auto=format&fit=crop&q=80';
     const avatarUrl = biz.avatar_url || 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&q=80';
+    const directionsHref = buildGoogleMapsHref({
+        rawValue: business.address_text,
+        lat: business.lat,
+        lng: business.lng,
+        municipio: business.municipio,
+    });
 
     const formatEventDate = (dateStr: string) => {
         const date = new Date(dateStr);
@@ -61,6 +73,7 @@ export default function BusinessDetail({ id }: { id: string }) {
 
     return (
         <div className="flex min-h-screen w-full flex-col bg-background-light dark:bg-background-dark pb-16 md:pb-0">
+            <EngagementViewTracker targetType="business" targetId={business.id} />
             <Header />
 
             <main className="flex-1 w-full max-w-[1200px] mx-auto bg-white dark:bg-slate-900 md:my-8 md:rounded-2xl md:shadow-md overflow-hidden outline outline-1 outline-slate-200 dark:outline-slate-800">
@@ -88,8 +101,8 @@ export default function BusinessDetail({ id }: { id: string }) {
                                     <span className="material-symbols-outlined text-blue-500 font-variation-fill" title="Cuenta Verificada">verified</span>
                                 )}
                             </div>
-                            <h1 className="text-3xl md:text-4xl font-black">{business.nombre}</h1>
-                            <p className="text-slate-500 dark:text-slate-400 font-medium text-lg">{business.categorias.join(' \u2022 ')}</p>
+                            <h1 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white">{business.nombre}</h1>
+                            <p className="text-slate-600 dark:text-slate-300 font-medium text-lg">{business.categorias.join(' \u2022 ')}</p>
                         </div>
                     </div>
 
@@ -99,7 +112,7 @@ export default function BusinessDetail({ id }: { id: string }) {
                         <div className="flex-1 flex flex-col gap-10">
 
                             <section>
-                                <h2 className="text-2xl font-bold mb-4">Sobre nosotros</h2>
+                                <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">Sobre nosotros</h2>
                                 <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-lg">
                                     {business.descripcion || 'Sin descripción disponible.'}
                                 </p>
@@ -108,13 +121,13 @@ export default function BusinessDetail({ id }: { id: string }) {
                             {/* ACTION BUTTONS (MOBILE) */}
                             <div className="grid grid-cols-2 gap-3 lg:hidden">
                                 {business.telefono && (
-                                    <a href={`tel:${business.telefono}`} className="flex flex-col items-center justify-center p-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+                                    <a href={`tel:${business.telefono}`} onClick={() => trackEngagement({ action: 'click', targetType: 'business', targetId: business.id })} className="flex flex-col items-center justify-center p-3 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition">
                                         <span className="material-symbols-outlined mb-1">call</span>
                                         Llamar
                                     </a>
                                 )}
                                 {business.whatsapp && (
-                                    <a href={`https://wa.me/1${business.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="flex flex-col items-center justify-center p-3 rounded-xl bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-500 font-medium hover:bg-green-100 dark:hover:bg-green-900/40 transition">
+                                    <a href={`https://wa.me/1${business.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" onClick={() => trackEngagement({ action: 'click', targetType: 'business', targetId: business.id })} className="flex flex-col items-center justify-center p-3 rounded-xl bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-500 font-medium hover:bg-green-100 dark:hover:bg-green-900/40 transition">
                                         <span className="material-symbols-outlined mb-1">chat</span>
                                         WhatsApp
                                     </a>
@@ -125,7 +138,7 @@ export default function BusinessDetail({ id }: { id: string }) {
                             {promos.length > 0 && (
                                 <section>
                                     <div className="flex items-center justify-between mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">
-                                        <h2 className="text-xl font-bold flex items-center gap-2">
+                                        <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                             <span className="material-symbols-outlined text-primary">local_offer</span>
                                             Promociones Activas
                                         </h2>
@@ -149,7 +162,7 @@ export default function BusinessDetail({ id }: { id: string }) {
                             {events.length > 0 && (
                                 <section className="mb-10">
                                     <div className="flex items-center justify-between mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">
-                                        <h2 className="text-xl font-bold flex items-center gap-2">
+                                        <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                             <span className="material-symbols-outlined text-primary">event</span>
                                             Próximos Eventos
                                         </h2>
@@ -174,7 +187,7 @@ export default function BusinessDetail({ id }: { id: string }) {
                         {/* SIDEBAR */}
                         <div className="w-full lg:w-80 shrink-0 flex flex-col gap-6 mb-10">
                             <div className="bg-slate-50 dark:bg-slate-800/80 p-5 rounded-xl border border-slate-200 dark:border-slate-700 flex flex-col gap-4">
-                                <h3 className="font-bold text-lg border-b border-slate-200 dark:border-slate-700 pb-2">Contacto</h3>
+                                <h3 className="font-bold text-lg text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-700 pb-2">Contacto</h3>
 
                                 {business.address_text && (
                                     <div className="flex gap-3 text-slate-600 dark:text-slate-300">
@@ -182,6 +195,16 @@ export default function BusinessDetail({ id }: { id: string }) {
                                         <span className="text-sm leading-tight">{business.address_text}</span>
                                     </div>
                                 )}
+
+                                {business.lat !== null && business.lng !== null ? (
+                                    <div className="h-56 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm relative z-0">
+                                        <MapView
+                                            markers={[{ id: business.id, lat: business.lat, lng: business.lng, title: business.nombre, category: 'Negocio', url: '#' }]}
+                                            center={[business.lat, business.lng]}
+                                            zoom={14}
+                                        />
+                                    </div>
+                                ) : null}
 
                                 {horarios && (
                                     <div className="flex gap-3 text-slate-600 dark:text-slate-300">
@@ -199,20 +222,26 @@ export default function BusinessDetail({ id }: { id: string }) {
 
                                 {/* DESKTOP QUICK ACTIONS */}
                                 <div className="hidden lg:flex flex-col gap-2 mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                                    {directionsHref && (
+                                        <a href={directionsHref} target="_blank" rel="noreferrer" onClick={() => trackEngagement({ action: 'click', targetType: 'business', targetId: business.id })} className="flex items-center gap-3 px-4 py-2 bg-primary text-white hover:bg-primary-hover rounded-lg transition font-medium">
+                                            <span className="material-symbols-outlined">directions</span>
+                                            Cómo llegar
+                                        </a>
+                                    )}
                                     {business.telefono && (
-                                        <a href={`tel:${business.telefono}`} className="flex items-center gap-3 px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg hover:border-primary transition font-medium">
+                                        <a href={`tel:${business.telefono}`} onClick={() => trackEngagement({ action: 'click', targetType: 'business', targetId: business.id })} className="flex items-center gap-3 px-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg hover:border-primary transition font-medium">
                                             <span className="material-symbols-outlined text-slate-500">call</span>
                                             {business.telefono}
                                         </a>
                                     )}
                                     {business.whatsapp && (
-                                        <a href={`https://wa.me/1${business.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="flex items-center gap-3 px-4 py-2 bg-[#25D366]/10 text-[#25D366] border border-[#25D366]/30 hover:bg-[#25D366]/20 rounded-lg transition font-medium">
+                                        <a href={`https://wa.me/1${business.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" onClick={() => trackEngagement({ action: 'click', targetType: 'business', targetId: business.id })} className="flex items-center gap-3 px-4 py-2 bg-[#25D366]/10 text-[#25D366] border border-[#25D366]/30 hover:bg-[#25D366]/20 rounded-lg transition font-medium">
                                             <span className="material-symbols-outlined">chat</span>
                                             WhatsApp
                                         </a>
                                     )}
                                     {business.instagram && (
-                                        <a href={`https://instagram.com/${business.instagram}`} target="_blank" rel="noreferrer" className="flex items-center gap-3 px-4 py-2 bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 text-purple-700 dark:text-pink-300 border border-pink-200 dark:border-pink-800/50 hover:opacity-80 rounded-lg transition font-medium">
+                                        <a href={`https://instagram.com/${business.instagram}`} target="_blank" rel="noreferrer" onClick={() => trackEngagement({ action: 'click', targetType: 'business', targetId: business.id })} className="flex items-center gap-3 px-4 py-2 bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 text-purple-700 dark:text-pink-300 border border-pink-200 dark:border-pink-800/50 hover:opacity-80 rounded-lg transition font-medium">
                                             <span className="material-symbols-outlined text-xl">photo_camera</span>
                                             @{business.instagram}
                                         </a>

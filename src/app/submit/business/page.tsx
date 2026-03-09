@@ -151,8 +151,9 @@ export default function SubmitBusinessPage() {
                                     </select>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Dirección</label>
-                                    <input type="text" value={addressText} onChange={e => setAddressText(e.target.value)} className="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-700 focus:ring-primary focus:border-primary" placeholder="Calle, número, sector..." />
+                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Dirección o Link de Google Maps</label>
+                                    <input type="text" value={addressText} onChange={e => setAddressText(e.target.value)} className="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-700 focus:ring-primary focus:border-primary" placeholder="Calle, número, sector o https://maps.google.com/..." />
+                                    <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">Si pegas un enlace de Google Maps, el botón <span className="font-semibold">Cómo llegar</span> del negocio abrirá ese destino.</p>
                                 </div>
                             </div>
 

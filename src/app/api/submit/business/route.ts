@@ -51,6 +51,8 @@ export async function POST(request: Request) {
     descripcion: validated.data.descripcion,
     municipio: validated.data.municipio,
     address_text: validated.data.addressText,
+    lat: validated.data.lat,
+    lng: validated.data.lng,
     telefono: validated.data.telefono,
     whatsapp: validated.data.whatsapp,
     instagram: validated.data.instagram,

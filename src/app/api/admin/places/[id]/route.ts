@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { recordAdminAudit } from '@/lib/admin/audit-log';
 import { requireAdmin } from '@/lib/admin/require-admin';
 import { PLACE_CATEGORIES, MUNICIPIOS } from '@/lib/constants/municipios';
+import { parseLocationInput } from '@/lib/maps/location-input';
 import type { PlaceCost } from '@/lib/types/database';
 
 const MUNICIPIOS_SET = new Set<string>(MUNICIPIOS);
@@ -65,9 +66,11 @@ function validatePlacePayload(payload: unknown) {
     return { error: 'Descripción demasiado larga.' };
   }
 
-  if (addressText && addressText.length > 200) {
+  if (addressText && addressText.length > 600) {
     return { error: 'Dirección demasiado larga.' };
   }
+
+  const parsedLocation = addressText ? parseLocationInput(addressText) : null;
 
   return {
     data: {
@@ -75,6 +78,8 @@ function validatePlacePayload(payload: unknown) {
       descripcion,
       municipio,
       address_text: addressText,
+      lat: parsedLocation?.lat ?? null,
+      lng: parsedLocation?.lng ?? null,
       categorias,
       costo,
       fotos,

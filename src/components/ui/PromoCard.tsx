@@ -1,5 +1,8 @@
+'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
+import { trackEngagement } from '@/lib/engagement/tracking';
 
 interface PromoCardProps {
     id: string;
@@ -64,6 +67,7 @@ export default function PromoCard({
 
             <Link
                 href={`/promos/${id}`}
+                onClick={() => trackEngagement({ action: 'click', targetType: 'promotion', targetId: id })}
                 className={`block w-full text-center border font-bold py-2 rounded-md transition-colors text-sm ${
                     isFeatured
                         ? 'bg-slate-800 border-slate-700 hover:bg-primary/10 hover:border-primary/40 text-white'

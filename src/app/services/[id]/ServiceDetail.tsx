@@ -2,9 +2,11 @@
 import { useEffect, useState } from 'react';
 import Header from '@/components/ui/Header';
 import MobileNav from '@/components/ui/MobileNav';
+import EngagementViewTracker from '@/components/ui/EngagementViewTracker';
 import FavoriteButton from '@/components/ui/FavoriteButton';
 import ShareButtons from '@/components/ui/ShareButtons';
 import dynamic from 'next/dynamic';
+import { trackEngagement } from '@/lib/engagement/tracking';
 import { createClient } from '@/lib/supabase/client';
 import type { ServiceListing } from '@/lib/types/database';
 
@@ -52,6 +54,7 @@ export default function ServiceDetail({ id }: { id: string }) {
 
     return (
         <div className="flex min-h-screen w-full flex-col bg-background-light dark:bg-background-dark pb-16 md:pb-0">
+            <EngagementViewTracker targetType="service" targetId={service.id} />
             <Header />
 
             <main className="flex-1 w-full max-w-[1100px] mx-auto bg-white dark:bg-slate-900 md:my-8 md:rounded-2xl md:shadow-sm overflow-hidden border-x border-y-0 md:border-y border-slate-200 dark:border-slate-800">
@@ -63,12 +66,12 @@ export default function ServiceDetail({ id }: { id: string }) {
                         <ShareButtons title={service.titulo} text={service.descripcion || `${service.titulo} en ${service.municipio}`} hashtags={['PuertoRico', 'Servicios']} />
                     </div>
                     <div className="absolute bottom-0 left-0 w-full p-6 text-white">
-                        <span className="bg-primary px-3 py-1 rounded-full text-xs font-bold shadow-sm uppercase mb-2 inline-block">
+                        <span className="bg-primary px-3 py-1 rounded-full text-xs font-bold text-white shadow-sm uppercase mb-2 inline-block">
                             {TYPE_LABEL[service.tipo] || service.tipo}
                         </span>
-                        <h1 className="text-4xl md:text-5xl font-black mb-2">{service.titulo}</h1>
-                        <div className="flex items-center gap-2 text-lg font-medium opacity-90">
-                            <span className="material-symbols-outlined text-[20px]">location_on</span>
+                        <h1 className="text-4xl md:text-5xl font-black text-white mb-2">{service.titulo}</h1>
+                        <div className="flex items-center gap-2 text-lg font-medium text-slate-100">
+                            <span className="material-symbols-outlined text-[20px] text-white/85">location_on</span>
                             {service.municipio}
                         </div>
                     </div>
@@ -77,7 +80,7 @@ export default function ServiceDetail({ id }: { id: string }) {
                 <div className="flex flex-col lg:flex-row gap-8 p-6 md:p-8">
                     <div className="flex-1 flex flex-col gap-8">
                         <section>
-                            <h2 className="text-2xl font-bold mb-4">Descripción</h2>
+                            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">Descripción</h2>
                             <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-lg">
                                 {service.descripcion || 'Sin descripción disponible.'}
                             </p>
@@ -86,7 +89,7 @@ export default function ServiceDetail({ id }: { id: string }) {
 
                     <div className="w-full lg:w-80 shrink-0 flex flex-col gap-6">
                         <div className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-xl border border-slate-200 dark:border-slate-700">
-                            <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                            <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                                 <span className="material-symbols-outlined text-primary">info</span>
                                 Información
                             </h3>
@@ -102,6 +105,7 @@ export default function ServiceDetail({ id }: { id: string }) {
                                 {service.telefono && (
                                     <a
                                         href={`tel:${service.telefono}`}
+                                        onClick={() => trackEngagement({ action: 'click', targetType: 'service', targetId: service.id })}
                                         className="mt-2 w-full bg-primary hover:bg-primary-hover text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm"
                                     >
                                         <span className="material-symbols-outlined">call</span>
@@ -113,6 +117,7 @@ export default function ServiceDetail({ id }: { id: string }) {
                                         href={`https://wa.me/1${service.whatsapp.replace(/\D/g, '')}`}
                                         target="_blank"
                                         rel="noreferrer"
+                                        onClick={() => trackEngagement({ action: 'click', targetType: 'service', targetId: service.id })}
                                         className="w-full bg-[#25D366]/10 text-[#25D366] border border-[#25D366]/30 font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-colors hover:bg-[#25D366]/20"
                                     >
                                         <span className="material-symbols-outlined">chat</span>
@@ -122,7 +127,7 @@ export default function ServiceDetail({ id }: { id: string }) {
                             </div>
                         </div>
 
-                        {service.lat && service.lng && (
+                        {service.lat !== null && service.lng !== null && (
                             <>
                                 <div className="h-64 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm relative z-0">
                                     <MapView
@@ -135,6 +140,7 @@ export default function ServiceDetail({ id }: { id: string }) {
                                     href={`https://maps.google.com/?q=${service.lat},${service.lng}`}
                                     target="_blank"
                                     rel="noreferrer"
+                                    onClick={() => trackEngagement({ action: 'click', targetType: 'service', targetId: service.id })}
                                     className="w-full bg-primary hover:bg-primary-hover text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm"
                                 >
                                     <span className="material-symbols-outlined">directions</span>

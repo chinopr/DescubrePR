@@ -5,6 +5,8 @@ import Link from 'next/link';
 import Header from '@/components/ui/Header';
 import MobileNav from '@/components/ui/MobileNav';
 import { createClient } from '@/lib/supabase/client';
+import { trackEngagement } from '@/lib/engagement/tracking';
+import { isMissingBoostColumnError } from '@/lib/supabase/boost-fallback';
 import type { ServiceListing, ListingType } from '@/lib/types/database';
 
 export default function ServicesPageClient() {
@@ -22,6 +24,7 @@ export default function ServicesPageClient() {
                 .from('service_listings')
                 .select('*')
                 .eq('estado', 'approved')
+                .order('boost_score', { ascending: false })
                 .order('destacado', { ascending: false })
                 .order('created_at', { ascending: false })
                 .limit(20);
@@ -30,11 +33,27 @@ export default function ServicesPageClient() {
                 query = query.eq('tipo', typeFilter);
             }
 
-            const { data } = await query;
+            let response = await query;
+
+            if (isMissingBoostColumnError(response.error)) {
+                let fallbackQuery = supabase
+                    .from('service_listings')
+                    .select('*')
+                    .eq('estado', 'approved')
+                    .order('destacado', { ascending: false })
+                    .order('created_at', { ascending: false })
+                    .limit(20);
+
+                if (typeFilter !== 'all') {
+                    fallbackQuery = fallbackQuery.eq('tipo', typeFilter);
+                }
+
+                response = await fallbackQuery;
+            }
 
             if (cancelled) return;
 
-            setServices(data || []);
+            setServices(response.data || []);
             setLoading(false);
         }
 
@@ -112,7 +131,12 @@ export default function ServicesPageClient() {
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                     {services.map(service => (
-                                        <Link key={service.id} href={`/services/${service.id}`} className="bg-white dark:bg-slate-800 rounded-xl overflow-hidden shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-md transition-shadow group flex flex-col cursor-pointer">
+                                        <Link
+                                            key={service.id}
+                                            href={`/services/${service.id}`}
+                                            onClick={() => trackEngagement({ action: 'click', targetType: 'service', targetId: service.id })}
+                                            className="bg-white dark:bg-slate-800 rounded-xl overflow-hidden shadow-sm border border-slate-200 dark:border-slate-700 hover:shadow-md transition-shadow group flex flex-col cursor-pointer"
+                                        >
                                             <div
                                                 className="w-full h-48 bg-cover bg-center"
                                                 style={{ backgroundImage: `url("${service.fotos[0] || 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&q=80'}")` }}

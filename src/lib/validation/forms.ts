@@ -1,4 +1,5 @@
 import { BUSINESS_CATEGORIES, MUNICIPIOS } from '@/lib/constants/municipios';
+import { parseLocationInput } from '@/lib/maps/location-input';
 import type { ListingType, UserRole } from '@/lib/types/database';
 
 type ValidationSuccess<T> = {
@@ -181,6 +182,8 @@ export function validateBusinessSubmission(payload: unknown): ValidationResult<{
   descripcion: string | null;
   municipio: string;
   addressText: string | null;
+  lat: number | null;
+  lng: number | null;
   telefono: string | null;
   whatsapp: string | null;
   instagram: string | null;
@@ -228,7 +231,7 @@ export function validateBusinessSubmission(payload: unknown): ValidationResult<{
   const descripcionError = validateOptionalMaxLength(descripcion, 'La descripción', 1200);
   if (descripcionError) return { success: false, error: descripcionError };
 
-  const addressError = validateOptionalMaxLength(addressText, 'La dirección', 200);
+  const addressError = validateOptionalMaxLength(addressText, 'La dirección', 600);
   if (addressError) return { success: false, error: addressError };
 
   if (!isValidPhone(telefono) || !isValidPhone(whatsapp)) {
@@ -242,6 +245,8 @@ export function validateBusinessSubmission(payload: unknown): ValidationResult<{
     return { success: false, error: 'El website debe ser una URL válida.' };
   }
 
+  const parsedLocation = addressText ? parseLocationInput(addressText) : null;
+
   return {
     success: true,
     data: {
@@ -249,6 +254,8 @@ export function validateBusinessSubmission(payload: unknown): ValidationResult<{
       descripcion,
       municipio,
       addressText,
+      lat: parsedLocation?.lat ?? null,
+      lng: parsedLocation?.lng ?? null,
       telefono,
       whatsapp,
       instagram,
@@ -406,6 +413,8 @@ export function validateServiceSubmission(payload: unknown): ValidationResult<{
   precio: number | null;
   telefono: string | null;
   whatsapp: string | null;
+  lat: number | null;
+  lng: number | null;
   fotos: string[];
 }> {
   if (!isRecord(payload)) {
@@ -420,6 +429,7 @@ export function validateServiceSubmission(payload: unknown): ValidationResult<{
   const precio = rawPrecio ? Number(rawPrecio) : null;
   const telefono = sanitizePhone(payload.telefono);
   const whatsapp = sanitizePhone(payload.whatsapp);
+  const locationReference = getOptionalString(payload.locationReference);
   const fotos = sanitizeFotos(payload.fotos, 5);
 
   if (!LISTING_TYPES.has(tipo)) {
@@ -444,6 +454,19 @@ export function validateServiceSubmission(payload: unknown): ValidationResult<{
     return { success: false, error: 'Teléfono o WhatsApp inválido.' };
   }
 
+  let lat: number | null = null;
+  let lng: number | null = null;
+
+  if (tipo === 'alquiler' && locationReference) {
+    const parsedLocation = parseLocationInput(locationReference);
+    if (!parsedLocation) {
+      return { success: false, error: 'Ingresa coordenadas válidas o un enlace de Google Maps con ubicación.' };
+    }
+
+    lat = parsedLocation.lat;
+    lng = parsedLocation.lng;
+  }
+
   return {
     success: true,
     data: {
@@ -454,6 +477,8 @@ export function validateServiceSubmission(payload: unknown): ValidationResult<{
       precio,
       telefono,
       whatsapp,
+      lat,
+      lng,
       fotos,
     },
   };

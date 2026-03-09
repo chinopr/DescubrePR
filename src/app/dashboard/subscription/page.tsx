@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { PLANS, getPlanById } from '@/lib/constants/plans'
+import { syncStripeCheckoutSession } from '@/lib/stripe/subscriptions'
 import type { Subscription } from '@/lib/types/database'
 
 type Props = {
@@ -32,6 +33,16 @@ export default async function SubscriptionPage({ searchParams }: Props) {
     const params = searchParams ? await searchParams : {}
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
+    const success = params.success === '1'
+    const sessionId = typeof params.session_id === 'string' ? params.session_id : null
+
+    if (user && success && sessionId) {
+        try {
+            await syncStripeCheckoutSession(sessionId, user.id)
+        } catch {
+            // Keep the page usable even if Stripe sync fails and wait for webhook fallback.
+        }
+    }
 
     const { data: subscription } = user
         ? await supabase
@@ -44,7 +55,6 @@ export default async function SubscriptionPage({ searchParams }: Props) {
     const currentSubscription = subscription as Subscription | null
     const currentPlan = currentSubscription?.plan_id ? getPlanById(currentSubscription.plan_id) : null
     const hasManageableSubscription = !!currentSubscription?.stripe_customer_id && ACTIVE_STATUSES.has(currentSubscription.status)
-    const success = params.success === '1'
     const canceled = params.canceled === '1'
     const errorCode = typeof params.error === 'string' ? params.error : null
 
@@ -57,7 +67,7 @@ export default async function SubscriptionPage({ searchParams }: Props) {
 
             {success && (
                 <div className="mb-6 rounded-xl border border-green-200 bg-green-50 dark:bg-green-900/10 dark:border-green-800/30 px-4 py-3 text-sm text-green-700 dark:text-green-300">
-                    Stripe confirmó tu pago. Tu plan debe reflejarse automáticamente cuando llegue el webhook.
+                    Stripe confirmó tu pago. Intentamos sincronizar tu plan al regresar y, si hiciera falta, el webhook terminará de confirmarlo.
                 </div>
             )}
             {canceled && (

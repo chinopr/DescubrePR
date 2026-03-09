@@ -10,6 +10,7 @@ import PlaceCard from '@/components/ui/PlaceCard';
 import EventCard from '@/components/ui/EventCard';
 import PromoCard from '@/components/ui/PromoCard';
 import { createClient } from '@/lib/supabase/client';
+import { isMissingBoostColumnError } from '@/lib/supabase/boost-fallback';
 import type { Place, Event, Promotion } from '@/lib/types/database';
 
 export default function HomeClient() {
@@ -26,10 +27,11 @@ export default function HomeClient() {
     const fetchData = async () => {
       setLoading(true);
 
-      const placesQuery = supabase
+      let placesQuery = supabase
         .from('places')
         .select('*')
         .eq('estado', 'published')
+        .order('boost_score', { ascending: false })
         .order('created_at', { ascending: false })
         .limit(4);
 
@@ -37,13 +39,14 @@ export default function HomeClient() {
         placesQuery.contains('categorias', [selectedCategory]);
       }
 
-      const [placesRes, eventsRes, promosRes] = await Promise.all([
+      let [placesRes, eventsRes, promosRes] = await Promise.all([
         placesQuery,
         supabase
           .from('events')
           .select('*')
           .eq('estado', 'approved')
           .gte('start_datetime', new Date().toISOString())
+          .order('boost_score', { ascending: false })
           .order('start_datetime', { ascending: true })
           .limit(3),
         supabase
@@ -51,9 +54,45 @@ export default function HomeClient() {
           .select('*, businesses(nombre)')
           .eq('estado', 'approved')
           .gte('end_date', new Date().toISOString().split('T')[0])
+          .order('boost_score', { ascending: false })
           .order('created_at', { ascending: false })
           .limit(2),
       ]);
+
+      if (isMissingBoostColumnError(placesRes.error)) {
+        placesQuery = supabase
+          .from('places')
+          .select('*')
+          .eq('estado', 'published')
+          .order('created_at', { ascending: false })
+          .limit(4);
+
+        if (selectedCategory !== 'all') {
+          placesQuery.contains('categorias', [selectedCategory]);
+        }
+
+        placesRes = await placesQuery;
+      }
+
+      if (isMissingBoostColumnError(eventsRes.error)) {
+        eventsRes = await supabase
+          .from('events')
+          .select('*')
+          .eq('estado', 'approved')
+          .gte('start_datetime', new Date().toISOString())
+          .order('start_datetime', { ascending: true })
+          .limit(3);
+      }
+
+      if (isMissingBoostColumnError(promosRes.error)) {
+        promosRes = await supabase
+          .from('promotions')
+          .select('*, businesses(nombre)')
+          .eq('estado', 'approved')
+          .gte('end_date', new Date().toISOString().split('T')[0])
+          .order('created_at', { ascending: false })
+          .limit(2);
+      }
 
       if (cancelled) return;
 

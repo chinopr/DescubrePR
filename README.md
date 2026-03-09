@@ -65,6 +65,7 @@ Estado actual:
 - Checkout Sessions en servidor
 - Billing Portal en servidor
 - webhook para sincronizar suscripciones contra Supabase
+- sincronizacion adicional del plan al regresar desde Checkout usando `session_id`
 - tabla `subscriptions` como fuente de verdad del plan activo
 
 ### PWA
@@ -145,6 +146,12 @@ Lint:
 npm run lint
 ```
 
+Tests:
+
+```bash
+npm run test:run
+```
+
 Build de produccion:
 
 ```bash
@@ -155,9 +162,22 @@ Notas operativas:
 
 - El build ya no depende de `next/font/google`; la tipografia principal usa un stack local del sistema.
 - ESLint ignora artefactos generados en `tmp/descubrepr-next`.
+- La base de tests usa Vitest con configuracion en `vitest.config.ts`.
 - La PWA genera `public/sw.js` y `public/workbox-*.js` durante `npm run build`.
 - La PWA genera tambien `public/worker-*.js` cuando existe worker custom.
-- `npm run lint` y `npm run build` pasan con la configuracion actual.
+- `npm run lint`, `npm run test:run` y `npm run build` pasan con la configuracion actual.
+
+## CI
+
+El repo incluye workflow propio en `.github/workflows/ci.yml`.
+
+Ese workflow ejecuta:
+- `npm ci`
+- `npm run lint`
+- `npm run test:run`
+- `npm run build`
+
+Para que el build y la CI sean reproducibles, el workflow inyecta valores placeholder para variables publicas y de VAPID que solo se necesitan para compilar.
 
 ## Middleware de Supabase
 

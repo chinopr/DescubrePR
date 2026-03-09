@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth/AuthProvider';
+import BoostActionButton from '@/components/ui/BoostActionButton';
 import { createClient } from '@/lib/supabase/client';
 import type { ServiceListing } from '@/lib/types/database';
 
@@ -72,10 +73,28 @@ export default function MyServicesPage() {
                                         {TIPO_LABEL[item.tipo]} &middot; {item.municipio}
                                         {item.precio && <span className="ml-2 font-bold text-primary">${item.precio}</span>}
                                     </p>
+                                    <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500 dark:text-slate-400">
+                                        <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 dark:bg-slate-800">
+                                            <span className="material-symbols-outlined text-[14px]">visibility</span>
+                                            {item.metrics_view_count} vistas
+                                        </span>
+                                        <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 dark:bg-slate-800">
+                                            <span className="material-symbols-outlined text-[14px]">ads_click</span>
+                                            {item.metrics_click_count} clics
+                                        </span>
+                                    </div>
                                 </div>
-                                <Link href={`/dashboard/services/${item.id}/edit`} className="text-slate-700 dark:text-slate-300 hover:text-primary text-sm font-medium flex items-center gap-1 transition shrink-0">
-                                    <span className="material-symbols-outlined text-sm">edit</span> Editar
-                                </Link>
+                                <div className="flex flex-col items-end gap-3 shrink-0">
+                                    <BoostActionButton
+                                        targetType="service"
+                                        targetId={item.id}
+                                        boostExpiresAt={item.boost_expires_at}
+                                        boostScore={item.boost_score}
+                                    />
+                                    <Link href={`/dashboard/services/${item.id}/edit`} className="text-slate-700 dark:text-slate-300 hover:text-primary text-sm font-medium flex items-center gap-1 transition shrink-0">
+                                        <span className="material-symbols-outlined text-sm">edit</span> Editar
+                                    </Link>
+                                </div>
                             </div>
                         );
                     })}

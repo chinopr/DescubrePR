@@ -4,8 +4,12 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Header from '@/components/ui/Header';
 import MobileNav from '@/components/ui/MobileNav';
+import PublishGateNotice from '@/components/ui/PublishGateNotice';
 import SearchBar from '@/components/ui/SearchBar';
 import { createClient } from '@/lib/supabase/client';
+import { trackEngagement } from '@/lib/engagement/tracking';
+import { isMissingBoostColumnError } from '@/lib/supabase/boost-fallback';
+import { usePublishAccess } from '@/lib/subscriptions/use-publish-access';
 import type { Event } from '@/lib/types/database';
 
 type DateFilter = 'all' | 'today' | 'tomorrow' | 'weekend' | 'week';
@@ -15,6 +19,7 @@ export default function EventsPageClient() {
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<DateFilter>('all');
     const [supabase] = useState(() => createClient());
+    const publishAccess = usePublishAccess();
 
     useEffect(() => {
         let cancelled = false;
@@ -28,6 +33,7 @@ export default function EventsPageClient() {
                 .select('*')
                 .eq('estado', 'approved')
                 .gte('start_datetime', now.toISOString())
+                .order('boost_score', { ascending: false })
                 .order('start_datetime', { ascending: true });
 
             if (filter === 'today') {
@@ -57,11 +63,49 @@ export default function EventsPageClient() {
                 query = query.lte('start_datetime', endOfWeek.toISOString());
             }
 
-            const { data } = await query.limit(20);
+            let response = await query.limit(20);
+
+            if (isMissingBoostColumnError(response.error)) {
+                let fallbackQuery = supabase
+                    .from('events')
+                    .select('*')
+                    .eq('estado', 'approved')
+                    .gte('start_datetime', now.toISOString())
+                    .order('start_datetime', { ascending: true });
+
+                if (filter === 'today') {
+                    const endOfDay = new Date(now);
+                    endOfDay.setHours(23, 59, 59, 999);
+                    fallbackQuery = fallbackQuery.lte('start_datetime', endOfDay.toISOString());
+                } else if (filter === 'tomorrow') {
+                    const tomorrow = new Date(now);
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    tomorrow.setHours(0, 0, 0, 0);
+                    const endOfTomorrow = new Date(tomorrow);
+                    endOfTomorrow.setHours(23, 59, 59, 999);
+                    fallbackQuery = fallbackQuery.gte('start_datetime', tomorrow.toISOString()).lte('start_datetime', endOfTomorrow.toISOString());
+                } else if (filter === 'weekend') {
+                    const day = now.getDay();
+                    const daysUntilSat = day === 0 ? 6 : 6 - day;
+                    const saturday = new Date(now);
+                    saturday.setDate(now.getDate() + daysUntilSat);
+                    saturday.setHours(0, 0, 0, 0);
+                    const sunday = new Date(saturday);
+                    sunday.setDate(saturday.getDate() + 1);
+                    sunday.setHours(23, 59, 59, 999);
+                    fallbackQuery = fallbackQuery.gte('start_datetime', saturday.toISOString()).lte('start_datetime', sunday.toISOString());
+                } else if (filter === 'week') {
+                    const endOfWeek = new Date(now);
+                    endOfWeek.setDate(now.getDate() + 7);
+                    fallbackQuery = fallbackQuery.lte('start_datetime', endOfWeek.toISOString());
+                }
+
+                response = await fallbackQuery.limit(20);
+            }
 
             if (cancelled) return;
 
-            setEvents(data || []);
+            setEvents(response.data || []);
             setLoading(false);
         }
 
@@ -105,10 +149,16 @@ export default function EventsPageClient() {
                             <p className="text-slate-600 dark:text-slate-400">Discover what&apos;s happening around you.</p>
                         </div>
                         <SearchBar className="w-full md:w-auto md:min-w-[400px] !shadow-none border border-slate-200 dark:border-slate-700" />
-                        <Link href="/submit/event" className="w-full md:w-auto bg-primary hover:bg-primary-hover text-white font-bold py-3 px-6 rounded-lg transition-colors shadow-md flex justify-center items-center gap-2 shrink-0">
-                            <span className="material-symbols-outlined">add_circle</span>
-                            Publicar Evento
-                        </Link>
+                        {publishAccess.loading ? null : publishAccess.canPublish ? (
+                            <Link href="/submit/event" className="w-full md:w-auto bg-primary hover:bg-primary-hover text-white font-bold py-3 px-6 rounded-lg transition-colors shadow-md flex justify-center items-center gap-2 shrink-0">
+                                <span className="material-symbols-outlined">add_circle</span>
+                                Publicar Evento
+                            </Link>
+                        ) : (
+                            <div className="w-full md:w-auto md:max-w-sm">
+                                <PublishGateNotice reason={publishAccess.reason || 'Necesitas un plan activo para publicar eventos.'} businessCount={publishAccess.businessCount} />
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex gap-3 overflow-x-auto hide-scrollbar">
@@ -139,7 +189,12 @@ export default function EventsPageClient() {
                             </div>
                         ) : (
                             events.map(event => (
-                                <Link key={event.id} href={`/events/${event.id}`} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 flex flex-col sm:flex-row gap-4 hover:shadow-md transition-shadow group cursor-pointer">
+                                <Link
+                                    key={event.id}
+                                    href={`/events/${event.id}`}
+                                    onClick={() => trackEngagement({ action: 'click', targetType: 'event', targetId: event.id })}
+                                    className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 flex flex-col sm:flex-row gap-4 hover:shadow-md transition-shadow group cursor-pointer"
+                                >
                                     <div
                                         className="w-full sm:w-48 h-48 sm:h-32 rounded-lg bg-cover bg-center shrink-0"
                                         style={{ backgroundImage: `url("${event.fotos[0] || 'https://images.unsplash.com/photo-1533174000220-db9284bd06b0?auto=format&fit=crop&q=80'}")` }}

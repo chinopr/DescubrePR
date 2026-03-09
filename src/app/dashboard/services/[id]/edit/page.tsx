@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/auth/AuthProvider';
 import { createClient } from '@/lib/supabase/client';
 import ImageUpload from '@/components/ui/ImageUpload';
 import { MUNICIPIOS } from '@/lib/constants/municipios';
+import { formatCoordinates, parseLocationInput } from '@/lib/maps/location-input';
 import type { ListingType } from '@/lib/types/database';
 
 export default function EditServicePage() {
@@ -21,10 +22,12 @@ export default function EditServicePage() {
     const [precio, setPrecio] = useState('');
     const [telefono, setTelefono] = useState('');
     const [whatsapp, setWhatsapp] = useState('');
+    const [locationReference, setLocationReference] = useState('');
     const [fotos, setFotos] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const tipoLabels: Record<ListingType, string> = { servicio: 'Servicio', producto: 'Producto', alquiler: 'Alquiler' };
 
@@ -40,6 +43,7 @@ export default function EditServicePage() {
                 setPrecio(data.precio ? String(data.precio) : '');
                 setTelefono(data.telefono || '');
                 setWhatsapp(data.whatsapp || '');
+                setLocationReference(formatCoordinates(data.lat, data.lng));
                 setFotos(data.fotos || []);
                 setLoading(false);
             });
@@ -47,9 +51,20 @@ export default function EditServicePage() {
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
+        setError(null);
         setSaving(true);
+        const parsedLocation = tipo === 'alquiler' && locationReference.trim() ? parseLocationInput(locationReference) : null;
+
+        if (tipo === 'alquiler' && locationReference.trim() && !parsedLocation) {
+            setError('Ingresa coordenadas válidas o un enlace de Google Maps con ubicación.');
+            setSaving(false);
+            return;
+        }
+
         await supabase.from('service_listings').update({
             tipo, titulo, descripcion: descripcion || null, municipio,
+            lat: tipo === 'alquiler' ? parsedLocation?.lat ?? null : null,
+            lng: tipo === 'alquiler' ? parsedLocation?.lng ?? null : null,
             precio: precio ? parseFloat(precio) : null,
             telefono: telefono || null, whatsapp: whatsapp || null, fotos,
         }).eq('id', id);
@@ -99,6 +114,13 @@ export default function EditServicePage() {
                         <input type="number" min="0" step="0.01" value={precio} onChange={e => setPrecio(e.target.value)} className="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-700" />
                     </div>
                 </div>
+                {tipo === 'alquiler' && (
+                    <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Ubicación para Cómo Llegar</label>
+                        <input type="text" value={locationReference} onChange={e => setLocationReference(e.target.value)} className="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-700" placeholder="18.4655, -66.1057 o enlace de Google Maps" />
+                        <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">Solo para alquileres. Si la llenas, el detalle mostrará el botón <span className="font-semibold">Cómo llegar</span>.</p>
+                    </div>
+                )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Telefono</label>
@@ -113,6 +135,13 @@ export default function EditServicePage() {
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Fotos</label>
                     <ImageUpload value={fotos} onChange={setFotos} max={5} />
                 </div>
+
+                {error ? (
+                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-start gap-3">
+                        <span className="material-symbols-outlined text-red-500 shrink-0">error</span>
+                        <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
+                    </div>
+                ) : null}
 
                 <div className="flex items-center gap-3">
                     <button type="submit" disabled={saving} className="bg-primary hover:bg-primary-hover text-white font-bold py-3 px-8 rounded-lg transition disabled:opacity-50 flex items-center gap-2">

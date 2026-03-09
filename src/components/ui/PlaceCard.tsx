@@ -1,5 +1,8 @@
+'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
+import { trackEngagement } from '@/lib/engagement/tracking';
 
 interface PlaceCardProps {
     id: string;
@@ -27,6 +30,7 @@ export default function PlaceCard({
     return (
         <Link
             href={`/places/${id}`}
+            onClick={() => trackEngagement({ action: 'click', targetType: 'place', targetId: id })}
             className={`flex flex-col gap-3 group cursor-pointer rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border p-3 h-full ${
                 isFeatured
                     ? 'bg-slate-900 border-slate-800'

@@ -8,6 +8,8 @@ import Header from '@/components/ui/Header';
 import MobileNav from '@/components/ui/MobileNav';
 import SearchBar from '@/components/ui/SearchBar';
 import { createClient } from '@/lib/supabase/client';
+import { trackEngagement } from '@/lib/engagement/tracking';
+import { isMissingBoostColumnError } from '@/lib/supabase/boost-fallback';
 
 const MapView = dynamic(() => import('@/components/ui/MapView'), {
     ssr: false,
@@ -28,7 +30,18 @@ interface MapMarker {
     municipio: string;
     type: 'place' | 'business';
     url: string;
+    boost_score?: number;
 }
+
+type MarkerRow = {
+    id: string;
+    nombre: string;
+    municipio: string;
+    lat: number | null;
+    lng: number | null;
+    categorias: string[] | null;
+    boost_score?: number | null;
+};
 
 function normalizeText(value: string) {
     return value
@@ -69,41 +82,64 @@ function MapContent() {
         let cancelled = false;
 
         async function fetchMarkers() {
-            const [placesRes, businessesRes] = await Promise.all([
+            const [placesResWithBoost, businessesResWithBoost] = await Promise.all([
                 supabase
                     .from('places')
-                    .select('id, nombre, municipio, lat, lng, categorias')
+                    .select('id, nombre, municipio, lat, lng, categorias, boost_score')
                     .eq('estado', 'published')
                     .not('lat', 'is', null),
                 supabase
                     .from('businesses')
-                    .select('id, nombre, municipio, lat, lng, categorias')
+                    .select('id, nombre, municipio, lat, lng, categorias, boost_score')
                     .eq('estado', 'published')
                     .not('lat', 'is', null),
             ]);
 
+            let placesData: MarkerRow[] = (placesResWithBoost.data || []) as MarkerRow[];
+            let businessesData: MarkerRow[] = (businessesResWithBoost.data || []) as MarkerRow[];
+
+            if (isMissingBoostColumnError(placesResWithBoost.error)) {
+                const fallbackPlacesRes = await supabase
+                    .from('places')
+                    .select('id, nombre, municipio, lat, lng, categorias')
+                    .eq('estado', 'published')
+                    .not('lat', 'is', null);
+                placesData = (fallbackPlacesRes.data || []) as MarkerRow[];
+            }
+
+            if (isMissingBoostColumnError(businessesResWithBoost.error)) {
+                const fallbackBusinessesRes = await supabase
+                    .from('businesses')
+                    .select('id, nombre, municipio, lat, lng, categorias')
+                    .eq('estado', 'published')
+                    .not('lat', 'is', null);
+                businessesData = (fallbackBusinessesRes.data || []) as MarkerRow[];
+            }
+
             if (cancelled) return;
 
-            const placeMarkers: MapMarker[] = (placesRes.data || []).map(p => ({
+            const placeMarkers: MapMarker[] = placesData.map(p => ({
                 id: p.id,
                 lat: p.lat!,
                 lng: p.lng!,
                 title: p.nombre,
-                category: p.categorias[0] || 'Lugar',
+                category: p.categorias?.[0] || 'Lugar',
                 municipio: p.municipio,
                 type: 'place',
                 url: `/places/${p.id}`,
+                boost_score: p.boost_score || 0,
             }));
 
-            const businessMarkers: MapMarker[] = (businessesRes.data || []).map(b => ({
+            const businessMarkers: MapMarker[] = businessesData.map(b => ({
                 id: b.id,
                 lat: b.lat!,
                 lng: b.lng!,
                 title: b.nombre,
-                category: b.categorias[0] || 'Negocio',
+                category: b.categorias?.[0] || 'Negocio',
                 municipio: b.municipio,
                 type: 'business',
                 url: `/businesses/${b.id}`,
+                boost_score: b.boost_score || 0,
             }));
 
             setMarkers([...placeMarkers, ...businessMarkers]);
@@ -137,6 +173,8 @@ function MapContent() {
 
         if (userLocation) {
             withDistance.sort((a, b) => (a.distanceKm || 0) - (b.distanceKm || 0));
+        } else {
+            withDistance.sort((a, b) => ((b.marker as MapMarker & { boost_score?: number }).boost_score || 0) - ((a.marker as MapMarker & { boost_score?: number }).boost_score || 0));
         }
 
         return withDistance;
@@ -268,6 +306,7 @@ function MapContent() {
                                 <div className="mt-3 flex gap-2">
                                     <Link
                                         href={marker.url}
+                                        onClick={() => trackEngagement({ action: 'click', targetType: marker.type, targetId: marker.id })}
                                         className="flex-1 text-center rounded-lg bg-primary text-white text-sm font-medium py-2 px-3 hover:bg-primary-hover transition-colors"
                                     >
                                         Ver detalle
@@ -294,6 +333,8 @@ function MapContent() {
                         center={center}
                         zoom={zoom}
                         userLocation={userLocation}
+                        selectedMarkerId={activeMarker?.id ?? null}
+                        onSelectMarker={setSelectedMarkerId}
                         className="w-full h-full"
                     />
                 )}

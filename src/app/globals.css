@@ -43,6 +43,39 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
+  .map-cluster-icon {
+    background: transparent;
+    border: none;
+  }
+
+  .map-cluster-badge {
+    align-items: center;
+    background: linear-gradient(135deg, #ec7f13, #f59e0b);
+    border: 3px solid rgba(255, 255, 255, 0.95);
+    border-radius: 9999px;
+    box-shadow: 0 10px 25px rgba(236, 127, 19, 0.25);
+    color: white;
+    display: inline-flex;
+    font-size: 0.875rem;
+    font-weight: 800;
+    height: 2.75rem;
+    justify-content: center;
+    min-width: 2.75rem;
+    padding: 0 0.65rem;
+  }
+
+  .map-cluster-badge[data-size='medium'] {
+    font-size: 0.95rem;
+    height: 3rem;
+    min-width: 3rem;
+  }
+
+  .map-cluster-badge[data-size='large'] {
+    font-size: 1rem;
+    height: 3.35rem;
+    min-width: 3.35rem;
+  }
 }
 
 body {

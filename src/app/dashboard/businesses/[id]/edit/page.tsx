@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAuth } from '@/lib/auth/AuthProvider';
 import { createClient } from '@/lib/supabase/client';
 import { MUNICIPIOS, BUSINESS_CATEGORIES } from '@/lib/constants/municipios';
+import { parseLocationInput } from '@/lib/maps/location-input';
 
 export default function EditBusinessPage() {
     const { id } = useParams<{ id: string }>();
@@ -24,6 +25,7 @@ export default function EditBusinessPage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [saved, setSaved] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (!user) return;
@@ -51,9 +53,13 @@ export default function EditBusinessPage() {
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
+        setError(null);
         setSaving(true);
+        const parsedLocation = addressText.trim() ? parseLocationInput(addressText) : null;
         await supabase.from('businesses').update({
             nombre, descripcion: descripcion || null, municipio,
+            lat: parsedLocation?.lat ?? null,
+            lng: parsedLocation?.lng ?? null,
             address_text: addressText || null, telefono: telefono || null,
             whatsapp: whatsapp || null, instagram: instagram || null,
             website: website || null, categorias,
@@ -90,8 +96,9 @@ export default function EditBusinessPage() {
                         </select>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Direccion</label>
-                        <input type="text" value={addressText} onChange={e => setAddressText(e.target.value)} className="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-700" />
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Dirección o Link de Google Maps</label>
+                        <input type="text" value={addressText} onChange={e => setAddressText(e.target.value)} className="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-700" placeholder="Calle, número, sector o https://maps.google.com/..." />
+                        <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">Si pegas un enlace de Google Maps, el botón <span className="font-semibold">Cómo llegar</span> del negocio usará ese destino.</p>
                     </div>
                 </div>
                 <div>
@@ -122,6 +129,13 @@ export default function EditBusinessPage() {
                         <input type="url" value={website} onChange={e => setWebsite(e.target.value)} className="w-full px-4 py-2.5 rounded-lg border border-slate-300 dark:border-slate-600 dark:bg-slate-700" />
                     </div>
                 </div>
+
+                {error ? (
+                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 flex items-start gap-3">
+                        <span className="material-symbols-outlined text-red-500 shrink-0">error</span>
+                        <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
+                    </div>
+                ) : null}
 
                 <div className="flex items-center gap-3">
                     <button type="submit" disabled={saving} className="bg-primary hover:bg-primary-hover text-white font-bold py-3 px-8 rounded-lg transition disabled:opacity-50 flex items-center gap-2">

@@ -2,7 +2,10 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth/AuthProvider';
+import BoostActionButton from '@/components/ui/BoostActionButton';
+import PublishGateNotice from '@/components/ui/PublishGateNotice';
 import { createClient } from '@/lib/supabase/client';
+import { usePublishAccess } from '@/lib/subscriptions/use-publish-access';
 import type { Event } from '@/lib/types/database';
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
@@ -16,6 +19,7 @@ export default function MyEventsPage() {
     const supabase = createClient();
     const [events, setEvents] = useState<Event[]>([]);
     const [loading, setLoading] = useState(true);
+    const publishAccess = usePublishAccess();
 
     useEffect(() => {
         if (!user) return;
@@ -36,9 +40,11 @@ export default function MyEventsPage() {
                     <h1 className="text-3xl font-black mb-1 text-slate-900 dark:text-white">Mis Eventos</h1>
                     <p className="text-slate-600 dark:text-slate-400">{events.length} creado(s)</p>
                 </div>
-                <Link href="/submit/event" className="bg-primary hover:bg-primary-hover text-white font-bold py-2.5 px-5 rounded-lg transition flex items-center gap-2 text-sm">
-                    <span className="material-symbols-outlined text-lg">add</span> Nuevo
-                </Link>
+                {publishAccess.canPublish && (
+                    <Link href="/submit/event" className="bg-primary hover:bg-primary-hover text-white font-bold py-2.5 px-5 rounded-lg transition flex items-center gap-2 text-sm">
+                        <span className="material-symbols-outlined text-lg">add</span> Nuevo
+                    </Link>
+                )}
             </div>
 
             {loading ? (
@@ -49,9 +55,15 @@ export default function MyEventsPage() {
                 <div className="text-center py-16 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100">
                     <span className="material-symbols-outlined text-5xl text-slate-300 mb-3 block">event</span>
                     <p className="text-lg text-slate-600 dark:text-slate-400 mb-4">No tienes eventos creados</p>
-                    <Link href="/submit/event" className="inline-flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-lg font-medium hover:bg-primary-hover transition">
-                        <span className="material-symbols-outlined">add</span> Crear Evento
-                    </Link>
+                    {publishAccess.canPublish ? (
+                        <Link href="/submit/event" className="inline-flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-lg font-medium hover:bg-primary-hover transition">
+                            <span className="material-symbols-outlined">add</span> Crear Evento
+                        </Link>
+                    ) : (
+                        <div className="max-w-md mx-auto">
+                            <PublishGateNotice reason={publishAccess.reason || 'Necesitas un plan activo para publicar eventos.'} businessCount={publishAccess.businessCount} />
+                        </div>
+                    )}
                 </div>
             ) : (
                 <div className="flex flex-col gap-3">
@@ -70,12 +82,30 @@ export default function MyEventsPage() {
                                         {isPast && <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">Pasado</span>}
                                     </div>
                                     <p className="text-sm text-slate-600 dark:text-slate-400">{ev.municipio} &middot; {formatDate(ev.start_datetime)}</p>
+                                    <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500 dark:text-slate-400">
+                                        <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 dark:bg-slate-800">
+                                            <span className="material-symbols-outlined text-[14px]">visibility</span>
+                                            {ev.metrics_view_count} vistas
+                                        </span>
+                                        <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 dark:bg-slate-800">
+                                            <span className="material-symbols-outlined text-[14px]">ads_click</span>
+                                            {ev.metrics_click_count} clics
+                                        </span>
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-3 shrink-0">
-                                    <span className="text-sm text-slate-700 dark:text-slate-300">{ev.costo === 0 ? 'Gratis' : `$${ev.costo.toFixed(2)}`}</span>
-                                    <Link href={`/dashboard/events/${ev.id}/edit`} className="text-slate-700 dark:text-slate-300 hover:text-primary text-sm font-medium flex items-center gap-1 transition">
-                                        <span className="material-symbols-outlined text-sm">edit</span>
-                                    </Link>
+                                <div className="flex flex-col items-end gap-3 shrink-0">
+                                    <BoostActionButton
+                                        targetType="event"
+                                        targetId={ev.id}
+                                        boostExpiresAt={ev.boost_expires_at}
+                                        boostScore={ev.boost_score}
+                                    />
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-sm text-slate-700 dark:text-slate-300">{ev.costo === 0 ? 'Gratis' : `$${ev.costo.toFixed(2)}`}</span>
+                                        <Link href={`/dashboard/events/${ev.id}/edit`} className="text-slate-700 dark:text-slate-300 hover:text-primary text-sm font-medium flex items-center gap-1 transition">
+                                            <span className="material-symbols-outlined text-sm">edit</span>
+                                        </Link>
+                                    </div>
                                 </div>
                             </div>
                         );

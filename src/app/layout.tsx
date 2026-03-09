@@ -1,5 +1,6 @@
 import "./globals.css";
 import "leaflet/dist/leaflet.css";
+import "leaflet.markercluster/dist/MarkerCluster.css";
 import { AuthProvider } from "@/lib/auth/AuthProvider";
 import MaterialSymbolsLoader from "@/components/ui/MaterialSymbolsLoader";
 import InstallPrompt from "@/components/ui/InstallPrompt";

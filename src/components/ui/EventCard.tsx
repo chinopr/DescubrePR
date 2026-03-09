@@ -1,5 +1,8 @@
+'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
+import { trackEngagement } from '@/lib/engagement/tracking';
 
 interface EventCardProps {
     id: string;
@@ -22,7 +25,11 @@ export default function EventCard({ id, title, dateStr, location, imageUrl }: Ev
                 />
             </div>
             <div className="flex flex-col justify-center flex-1 min-w-0">
-                <Link href={`/events/${id}`} className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-primary transition-colors line-clamp-1 block">
+                <Link
+                    href={`/events/${id}`}
+                    onClick={() => trackEngagement({ action: 'click', targetType: 'event', targetId: id })}
+                    className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-primary transition-colors line-clamp-1 block"
+                >
                     {title}
                 </Link>
                 <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 truncate">

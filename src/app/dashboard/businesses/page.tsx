@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth/AuthProvider';
+import BoostActionButton from '@/components/ui/BoostActionButton';
 import { createClient } from '@/lib/supabase/client';
 import type { Business } from '@/lib/types/database';
 
@@ -67,14 +68,32 @@ export default function MyBusinessesPage() {
                                         <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${badge.cls}`}>{badge.label}</span>
                                     </div>
                                     <p className="text-sm text-slate-600 dark:text-slate-400">{biz.municipio} &middot; {biz.categorias.join(', ')}</p>
+                                    <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-500 dark:text-slate-400">
+                                        <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 dark:bg-slate-800">
+                                            <span className="material-symbols-outlined text-[14px]">visibility</span>
+                                            {biz.metrics_view_count} vistas
+                                        </span>
+                                        <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-1 dark:bg-slate-800">
+                                            <span className="material-symbols-outlined text-[14px]">ads_click</span>
+                                            {biz.metrics_click_count} clics
+                                        </span>
+                                    </div>
                                 </div>
-                                <div className="flex gap-3 shrink-0">
+                                <div className="flex flex-col items-end gap-3 shrink-0">
+                                    <BoostActionButton
+                                        targetType="business"
+                                        targetId={biz.id}
+                                        boostExpiresAt={biz.boost_expires_at}
+                                        boostScore={biz.boost_score}
+                                    />
+                                    <div className="flex gap-3">
                                     <Link href={`/dashboard/businesses/${biz.id}/edit`} className="text-slate-700 dark:text-slate-300 hover:text-primary text-sm font-medium flex items-center gap-1 transition">
                                         <span className="material-symbols-outlined text-sm">edit</span> Editar
                                     </Link>
                                     <Link href={`/businesses/${biz.id}`} className="text-primary text-sm font-medium hover:underline flex items-center gap-1">
                                         Ver <span className="material-symbols-outlined text-sm">open_in_new</span>
                                     </Link>
+                                    </div>
                                 </div>
                             </div>
                         );

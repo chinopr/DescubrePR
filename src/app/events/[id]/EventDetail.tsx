@@ -2,9 +2,11 @@
 import { useEffect, useState } from 'react';
 import Header from '@/components/ui/Header';
 import MobileNav from '@/components/ui/MobileNav';
+import EngagementViewTracker from '@/components/ui/EngagementViewTracker';
 import FavoriteButton from '@/components/ui/FavoriteButton';
 import ShareButtons from '@/components/ui/ShareButtons';
 import dynamic from 'next/dynamic';
+import { trackEngagement } from '@/lib/engagement/tracking';
 import { createClient } from '@/lib/supabase/client';
 import type { Event } from '@/lib/types/database';
 
@@ -67,6 +69,7 @@ export default function EventDetail({ id }: { id: string }) {
 
     return (
         <div className="flex min-h-screen w-full flex-col bg-background-light dark:bg-background-dark pb-16 md:pb-0">
+            <EngagementViewTracker targetType="event" targetId={event.id} />
             <Header />
 
             <main className="flex-1 w-full max-w-[1200px] mx-auto bg-white dark:bg-slate-900 md:my-8 md:rounded-2xl md:shadow-sm overflow-hidden border-x border-y-0 md:border-y border-slate-200 dark:border-slate-800">
@@ -92,7 +95,7 @@ export default function EventDetail({ id }: { id: string }) {
                 <div className="flex flex-col lg:flex-row gap-8 p-6 md:p-8">
                     <div className="flex-1 flex flex-col gap-8">
                         <section>
-                            <h2 className="text-2xl font-bold mb-4">Sobre este evento</h2>
+                            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">Sobre este evento</h2>
                             <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-lg">
                                 {event.descripcion || 'Sin descripción disponible.'}
                             </p>
@@ -101,7 +104,7 @@ export default function EventDetail({ id }: { id: string }) {
 
                     <div className="w-full lg:w-80 shrink-0 flex flex-col gap-6">
                         <div className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-xl border border-slate-200 dark:border-slate-700">
-                            <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+                            <h3 className="font-bold text-lg text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                                 <span className="material-symbols-outlined text-primary">info</span>
                                 Información
                             </h3>
@@ -134,6 +137,7 @@ export default function EventDetail({ id }: { id: string }) {
                                         href={event.link}
                                         target="_blank"
                                         rel="noreferrer"
+                                        onClick={() => trackEngagement({ action: 'click', targetType: 'event', targetId: event.id })}
                                         className="mt-2 w-full bg-primary hover:bg-primary-hover text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm"
                                     >
                                         <span className="material-symbols-outlined">confirmation_number</span>
@@ -145,6 +149,7 @@ export default function EventDetail({ id }: { id: string }) {
                                         href={`https://wa.me/1${event.whatsapp.replace(/\D/g, '')}`}
                                         target="_blank"
                                         rel="noreferrer"
+                                        onClick={() => trackEngagement({ action: 'click', targetType: 'event', targetId: event.id })}
                                         className="w-full bg-[#25D366]/10 text-[#25D366] border border-[#25D366]/30 font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-colors hover:bg-[#25D366]/20"
                                     >
                                         <span className="material-symbols-outlined">chat</span>
@@ -167,6 +172,7 @@ export default function EventDetail({ id }: { id: string }) {
                                     href={`https://maps.google.com/?q=${event.lat},${event.lng}`}
                                     target="_blank"
                                     rel="noreferrer"
+                                    onClick={() => trackEngagement({ action: 'click', targetType: 'event', targetId: event.id })}
                                     className="w-full bg-primary hover:bg-primary-hover text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-colors shadow-sm"
                                 >
                                     <span className="material-symbols-outlined">directions</span>

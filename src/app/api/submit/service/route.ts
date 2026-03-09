@@ -51,6 +51,8 @@ export async function POST(request: Request) {
     titulo: validated.data.titulo,
     descripcion: validated.data.descripcion,
     municipio: validated.data.municipio,
+    lat: validated.data.lat,
+    lng: validated.data.lng,
     precio: validated.data.precio,
     telefono: validated.data.telefono,
     whatsapp: validated.data.whatsapp,

@@ -1,3 +1,5 @@
+'use client';
+
 import { CATEGORIES } from '@/lib/constants';
 
 interface CategoryChipsProps {
